@@ -1,0 +1,196 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   DESIGNSYSTEM — Elines Krudtugler (varm & venlig)
+   ============================================================ */
+@theme {
+  /* Brand-grøn */
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-300: #86efac;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #22c55e;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+  --color-brand-800: #166534;
+  --color-brand-900: #14532d;
+
+  /* Varme neutraler (let beige-tone i stedet for koldt grå) */
+  --color-warm-50: #faf9f7;
+  --color-warm-100: #f4f2ee;
+  --color-warm-200: #e8e4dd;
+  --color-warm-300: #d6cfc4;
+  --color-warm-400: #b3a99a;
+  --color-warm-500: #8f8474;
+  --color-warm-600: #6f655a;
+  --color-warm-700: #574f47;
+  --color-warm-800: #3c362f;
+  --color-warm-900: #2a241f;
+
+  /* Kalender-event farver (semantiske) */
+  --color-event-child: #1565c0;
+  --color-event-start: #2e7d32;
+  --color-event-free: #c62828;
+  --color-event-sick: #7b1fa2;
+  --color-event-dayoff: #757575;
+  --color-event-note: #ef6c00;
+  --color-event-waiting: #f9a825;
+  --color-event-closure: #263238;
+  --color-event-vacation: #4e342e;
+  --color-event-birthday: #d32f2f;
+  --color-event-holiday: #1d4d31;
+
+  /* Radius & skygger — bløde, venlige */
+  --radius-card: 1rem;
+
+  /* Font */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-warm-100 text-warm-800 antialiased;
+  font-family: var(--font-sans);
+}
+
+/* Pæn fokus-ring overalt */
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-500;
+}
+
+/* ============================================================
+   FULLCALENDAR — tilpasset tema (Elines Krudtugler)
+   ============================================================ */
+#calendar {
+  @apply bg-white rounded-2xl shadow-sm border border-warm-200 p-3 sm:p-5;
+}
+
+/* Knapper */
+.fc .fc-button {
+  @apply bg-brand-500! border-brand-500! text-white! font-semibold! rounded-lg! px-3! py-1.5! text-sm! shadow-none! capitalize! transition-colors!;
+}
+.fc .fc-button:hover {
+  @apply bg-brand-600! border-brand-600!;
+}
+.fc .fc-button-primary:disabled {
+  @apply bg-warm-300! border-warm-300! opacity-100!;
+}
+.fc .fc-button-active {
+  @apply bg-brand-700! border-brand-700!;
+}
+
+/* Titel */
+.fc .fc-toolbar-title {
+  @apply text-xl! font-bold! text-warm-900! capitalize!;
+}
+
+/* Header-celler (ugedage) */
+.fc .fc-col-header-cell {
+  @apply bg-brand-50 py-2 text-sm font-semibold text-warm-600;
+}
+.fc .fc-col-header-cell-cushion {
+  @apply text-warm-600 no-underline! capitalize;
+}
+
+/* Dato-tal */
+.fc .fc-daygrid-day-number {
+  @apply text-warm-600 text-sm font-medium px-1.5 py-1 no-underline!;
+}
+
+/* I dag */
+.fc .fc-day-today {
+  @apply bg-brand-50/60!;
+}
+.fc .fc-day-today .fc-daygrid-day-number {
+  @apply bg-brand-500 text-white rounded-lg font-bold;
+}
+
+/* Weekend */
+.fc .fc-day-sat,
+.fc .fc-day-sun {
+  @apply bg-warm-50;
+}
+
+/* Ugenumre */
+.fc .fc-daygrid-week-number {
+  @apply bg-warm-100 text-warm-400 text-xs font-normal px-1.5;
+}
+
+/* Celle-grid linjer */
+.fc-theme-standard td,
+.fc-theme-standard th {
+  @apply border-warm-200;
+}
+.fc-theme-standard .fc-scrollgrid {
+  @apply border-warm-200;
+}
+
+.fc .fc-daygrid-day-frame {
+  min-height: 110px;
+}
+
+/* "flere"-link */
+.fc .fc-daygrid-more-link {
+  @apply text-brand-600 font-semibold text-xs bg-brand-50 rounded px-1.5 py-0.5 no-underline!;
+}
+
+/* ============================================================
+   EVENT-FARVER (semantiske)
+   ============================================================ */
+.fc .fc-daygrid-event {
+  @apply rounded-md px-1.5 py-0.5 text-xs font-medium border-0 mb-0.5;
+}
+.fc-custom-event-title {
+  @apply whitespace-normal leading-tight;
+}
+
+.event-child       { background: var(--color-event-child)!important;    color: #fff!important; }
+.event-start       { background: var(--color-event-start)!important;    color: #fff!important; }
+.event-free        { background: var(--color-event-free)!important;     color: #fff!important; }
+.event-sick        { background: var(--color-event-sick)!important;     color: #fff!important; }
+.event-dayoff      { background: var(--color-event-dayoff)!important;   color: #fff!important; }
+.event-note        { background: var(--color-event-note)!important;     color: #fff!important; }
+.event-waiting     { background: var(--color-event-waiting)!important;  color: #1d1d1d!important; }
+.event-closure     { background: var(--color-event-closure)!important;  color: #fff!important; }
+.event-closure-vacation { background: var(--color-event-vacation)!important; color: #fff!important; }
+.event-holiday {
+  background: #d7ede0!important;
+  color: var(--color-event-holiday)!important;
+  font-weight: 700;
+}
+.event-birthday,
+.event-birthday .fc-custom-event-title {
+  background: #fff8f8!important;
+  color: #b71c1c!important;
+  border: 1px solid var(--color-event-birthday)!important;
+  font-weight: 700!important;
+}
+
+/* Multimonth (årsvisning) */
+.fc-multimonth {
+  @apply rounded-2xl;
+}
+.fc-multimonth-title {
+  @apply font-bold text-warm-900 capitalize;
+}
+.fc-multimonth .fc-daygrid-day-frame {
+  min-height: 70px;
+}
+
+/* List-view (mobil) */
+.fc .fc-list {
+  @apply rounded-xl border-warm-200;
+}
+.fc .fc-list-day-cushion {
+  @apply bg-brand-50;
+}
+.fc .fc-list-event:hover td {
+  @apply bg-warm-50;
+}
