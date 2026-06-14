@@ -121,3 +121,13 @@
 </script>
 
 <div id="calendar" bind:this={calendarEl}></div>
+
+<style>
+  :global(.fc .fc-button-group) {
+    gap: 4px;
+  }
+
+  :global(.fc .fc-button) {
+    margin: 0 2px;
+  }
+</style>
