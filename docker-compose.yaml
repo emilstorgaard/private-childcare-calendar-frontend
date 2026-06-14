@@ -4,8 +4,9 @@ services:
      context: .
      dockerfile: Dockerfile
     image: private-childcare-calendar-frontend:latest
-    # image: ghcr.io/emilstorgaard/elines-krudtugler-frontend:latest
     container_name: private-childcare-calendar-frontend
     ports:
       - '8082:3000'
     restart: unless-stopped
+    environment:
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
