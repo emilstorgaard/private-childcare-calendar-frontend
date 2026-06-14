@@ -1,8 +1,10 @@
 services:
   frontend:
     build:
-     context: .
-     dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL}
     image: private-childcare-calendar-frontend:latest
     container_name: private-childcare-calendar-frontend
     ports:
