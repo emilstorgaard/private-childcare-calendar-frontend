@@ -27,9 +27,6 @@
 	}
 
 	function getHeaderToolbar() {
-		if (isMobile()) {
-			return { left: 'prev,next', center: 'title', right: 'today' };
-		}
 		return {
 			left: 'prev,next today',
 			center: 'title',
