@@ -19,7 +19,6 @@
   let calendarEl: HTMLDivElement;
   let calendar: Calendar | undefined;
 
-  // Modal state
   let eventModalOpen = $state(false);
   let selectedEvent = $state<{ title: string; date: string; note: string } | null>(null);
 
@@ -123,7 +122,6 @@
 
 <div id="calendar" bind:this={calendarEl}></div>
 
-<!-- Event-detalje modal -->
 <Modal
   open={eventModalOpen}
   title={selectedEvent?.title ?? ''}

@@ -1,7 +1,3 @@
-// ============================================================
-//  Enums (matcher C#-enums — tal-værdier)
-// ============================================================
-
 export enum ChildDayStatusType {
   Syg = 1,
   Fridag = 2
@@ -13,7 +9,6 @@ export enum ClosurePeriodType {
   Andet = 3
 }
 
-// Label-hjælpere (erstatter [Display(Name=...)] fra C#)
 export const childDayStatusLabels: Record<ChildDayStatusType, string> = {
   [ChildDayStatusType.Syg]: 'Syg',
   [ChildDayStatusType.Fridag]: 'Fridag'
@@ -25,19 +20,15 @@ export const closurePeriodLabels: Record<ClosurePeriodType, string> = {
   [ClosurePeriodType.Andet]: 'Andet'
 };
 
-// ============================================================
-//  Entiteter (responses fra API'et)
-// ============================================================
-
 export interface Child {
   id: number;
   name: string;
-  birthDate: string;   // ISO date
+  birthDate: string;
   startDate: string;
   endDate: string;
   note: string | null;
-  freeDate: string;    // beregnet (read-only)
-  isFuture: boolean;   // beregnet (read-only)
+  freeDate: string;
+  isFuture: boolean;
 }
 
 export interface CalendarNote {
@@ -109,10 +100,6 @@ export interface BackupFile {
   sizeBytes: number;
   createdAt: string;
 }
-
-// ============================================================
-//  Request-typer (det vi SENDER til API'et)
-// ============================================================
 
 export interface ChildRequest {
   name: string;

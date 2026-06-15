@@ -1,9 +1,7 @@
 import { API_BASE_URL } from '$lib/config';
 
-// Fejl-type så vi kan vise backendens fejlbeskeder (f.eks. kapacitetsfejl)
 export class ApiError extends Error {
   status: number;
-  // ASP.NET valideringsfejl: { errors: { field: [msg] } }
   validationErrors?: Record<string, string[]>;
 
   constructor(message: string, status: number, validationErrors?: Record<string, string[]>) {
@@ -16,28 +14,25 @@ export class ApiError extends Error {
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (res.ok) {
-    // 204 No Content
     if (res.status === 204) return undefined as T;
     const text = await res.text();
     return text ? (JSON.parse(text) as T) : (undefined as T);
   }
 
-  // Forsøg at læse fejl-body
   let message = `Fejl (${res.status})`;
   let validationErrors: Record<string, string[]> | undefined;
 
   try {
     const body = await res.json();
     if (body.error) {
-      message = body.error;                     // vores { error: "..." }
+      message = body.error;
     } else if (body.errors) {
-      validationErrors = body.errors;           // ASP.NET model-validering
+      validationErrors = body.errors;
       message = 'Validering fejlede.';
     } else if (body.title) {
-      message = body.title;                     // ProblemDetails
+      message = body.title;
     }
   } catch {
-    // ignore — body var ikke JSON
   }
 
   throw new ApiError(message, res.status, validationErrors);
@@ -46,11 +41,9 @@ async function handleResponse<T>(res: Response): Promise<T> {
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
-  // til fetch i load-funktioner (SSR)
   fetchFn?: typeof fetch;
 }
 
-// ✅ Tilføj timeout i client.ts
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {}
@@ -58,7 +51,7 @@ export async function apiRequest<T>(
   const { method = 'GET', body, fetchFn = fetch } = options;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15_000); // 15 sek
+  const timeout = setTimeout(() => controller.abort(), 15_000);
 
   try {
     const res = await fetchFn(`${API_BASE_URL}${path}`, {
@@ -78,7 +71,6 @@ export async function apiRequest<T>(
   }
 }
 
-// Bekvemheds-helpers
 export const api = {
   get: <T>(path: string, fetchFn?: typeof fetch) =>
     apiRequest<T>(path, { method: 'GET', fetchFn }),

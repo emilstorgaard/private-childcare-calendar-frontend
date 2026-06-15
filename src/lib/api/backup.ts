@@ -12,18 +12,18 @@ export const backupApi = {
   remove: (fileName: string) =>
     api.delete<void>(`/api/backup/${encodeURIComponent(fileName)}`),
 
-  // Gendan fra en eksisterende backup i listen (uden genstart)
+  // Restore by existing backup in the list (without restart)
   restore: (fileName: string) =>
     api.post<{ message: string }>(
       `/api/backup/${encodeURIComponent(fileName)}/restore`,
       {}
     ),
 
-  // Download via direkte link
+  // Download by direct link
   downloadUrl: (fileName: string) =>
     `${API_BASE_URL}/api/backup/${encodeURIComponent(fileName)}/download`,
 
-  // Upload en backupfil → gemmes i listen
+  // Upload a backup file (saved to the list)
   upload: async (file: File): Promise<BackupFile> => {
     const formData = new FormData();
     formData.append('backupFile', file);

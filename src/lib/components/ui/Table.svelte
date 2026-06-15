@@ -9,7 +9,6 @@
   let { headers, children }: Props = $props();
 </script>
 
-<!-- Desktop: rigtig tabel -->
 <div class="hidden sm:block overflow-x-auto rounded-2xl border border-warm-200 bg-white shadow-sm">
   <table class="w-full">
     <thead>
@@ -27,7 +26,6 @@
   </table>
 </div>
 
-<!-- Mobil: kort-stak -->
 <div class="sm:hidden space-y-3">
   {@render children()}
 </div>

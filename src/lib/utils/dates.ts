@@ -1,4 +1,3 @@
-// dansk datoformat: dd-mm-yyyy
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('da-DK', {
     day: '2-digit',
@@ -7,7 +6,6 @@ export function formatDate(iso: string): string {
   });
 }
 
-// lang dansk dato: "mandag den 15. juni 2026"
 export function formatDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('da-DK', {
     weekday: 'long',
@@ -17,12 +15,10 @@ export function formatDateLong(iso: string): string {
   });
 }
 
-// til <input type="date"> (yyyy-mm-dd)
 export function toInputDate(iso: string): string {
   return iso.split('T')[0];
 }
 
-// dagens dato som yyyy-mm-dd
 export function today(): string {
   return new Date().toISOString().split('T')[0];
 }

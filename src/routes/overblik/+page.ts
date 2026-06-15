@@ -5,7 +5,7 @@ import type { PageLoad } from './$types';
 export const load: PageLoad = async ({ fetch }) => {
   try {
     const dashboard = await dashboardApi.get(fetch);
-  return { dashboard };
+    return { dashboard };
   } catch (err) {
     throw error(503, 'Kunne ikke hente dashboard fra serveren. Prøv igen senere.');
   }

@@ -9,7 +9,6 @@
   let { cells, actions }: Props = $props();
 </script>
 
-<!-- Desktop række -->
 <tr class="hidden sm:table-row hover:bg-warm-50 transition-colors">
   {#each cells as cell}
     <td class="px-4 py-3 text-warm-700">{cell.value}</td>
@@ -23,7 +22,6 @@
   {/if}
 </tr>
 
-<!-- Mobil kort -->
 <div class="sm:hidden bg-white rounded-2xl border border-warm-200 shadow-sm p-4 space-y-2">
   {#each cells as cell}
     <div class="flex justify-between gap-3 text-sm">
