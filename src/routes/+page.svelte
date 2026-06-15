@@ -9,7 +9,6 @@
   let modalOpen = $state(false);
   let selectedDate = $state('');
   let exportYear = $state(new Date().getFullYear());
-  let fabDateInput: HTMLInputElement;
 
   function handleDateClick(dateStr: string) {
     selectedDate = dateStr;
@@ -17,15 +16,9 @@
   }
 
   function handleFabClick() {
-    fabDateInput.showPicker();
-  }
-
-  function handleFabDateChange(e: Event) {
-    const val = (e.target as HTMLInputElement).value;
-    if (val) {
-      selectedDate = val;
-      modalOpen = true;
-    }
+    const today = new Date().toISOString().slice(0, 10);
+    selectedDate = today;
+    modalOpen = true;
   }
 
   function showYear() {
@@ -65,17 +58,12 @@
 
 <Calendar bind:this={calendarComponent} onDateClick={handleDateClick} />
 
+<!-- FAB – kun synlig på mobil -->
 <div class="fixed bottom-6 right-5 sm:hidden z-50">
-  <input
-    bind:this={fabDateInput}
-    type="date"
-    class="sr-only"
-    onchange={handleFabDateChange}
-  />
   <button
     type="button"
     onclick={handleFabClick}
-    class="w-14 h-14 rounded-full bg-brand-500 text-white shadow-lg flex items-center justify-center text-2xl hover:bg-brand-600 active:scale-95 transition-all"
+    class="w-14 h-14 rounded-full bg-brand-500 text-white shadow-lg flex items-center justify-center text-2xl hover:bg-brand-600 active:scale-95 transition-all cursor-pointer"
     aria-label="Opret på dato"
   >
     +
