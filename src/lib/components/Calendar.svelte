@@ -18,6 +18,7 @@
 
     let calendarEl: HTMLDivElement;
     let calendar: Calendar | undefined;
+    let currentView = $state('dayGridMonth');
 
     let eventModalOpen = $state(false);
     let selectedEvent = $state<{ title: string; date: string; note: string } | null>(null);
@@ -28,16 +29,23 @@
 
     function getHeaderToolbar() {
         return {
-            left: 'prev,next today',
+            left: 'prev,next',
             center: 'title',
-            right: 'dayGridMonth,multiMonthYear,listMonth'
+            right: 'today'
         };
     }
 
+    export function setView(view: string) {
+        calendar?.changeView(view);
+        currentView = view;
+    }
+
     onMount(() => {
+        currentView = isMobile() ? 'listMonth' : 'dayGridMonth';
+
         calendar = new Calendar(calendarEl, {
             plugins: [daygridPlugin, listPlugin, multiMonthPlugin, interactionPlugin],
-            initialView: isMobile() ? 'listMonth' : 'dayGridMonth',
+            initialView: currentView,
             locale: daLocale,
             firstDay: 1,
             weekNumbers: true,
@@ -55,10 +63,7 @@
             multiMonthMinWidth: 420,
             headerToolbar: getHeaderToolbar(),
             buttonText: {
-                today: 'I dag',
-                month: 'Måned',
-                år: 'År',
-                list: 'Liste'
+                today: 'I dag'
             },
             views: {
                 multiMonthYear: {
@@ -83,6 +88,9 @@
                     note: info.event.extendedProps.note ?? ''
                 };
                 eventModalOpen = true;
+            },
+            viewDidMount: (info) => {
+                currentView = info.view.type;
             },
             windowResize: () => {
                 calendar?.setOption('headerToolbar', getHeaderToolbar());
@@ -127,22 +135,6 @@
 </Modal>
 
 <style>
-    /* --- NYT: Håndtering af linjeskift i FullCalendar Toolbar --- */
-    :global(.fc .fc-toolbar) {
-        flex-wrap: wrap;
-        row-gap: 12px;
-        justify-content: space-between;
-    }
-
-    /* Tvinger højre side (visningsknapperne) ned på en ny linje og centrerer dem */
-    :global(.fc .fc-toolbar .fc-toolbar-chunk:last-child) {
-        flex-basis: 100%;
-        display: flex;
-        justify-content: center;
-        margin-top: 4px;
-    }
-    /* ----------------------------------------------------------- */
-
     :global(.fc .fc-button-group) {
         gap: 4px;
     }
