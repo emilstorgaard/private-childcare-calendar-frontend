@@ -9,9 +9,9 @@
     Table,
     TableRow,
     FormField,
-    Input
+    Input,
+    ConfirmButton
   } from '$lib/components/ui';
-  import ConfirmButton from '$lib/components/ConfirmButton.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

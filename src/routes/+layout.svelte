@@ -1,6 +1,6 @@
 <script lang="ts">
   import '../app.css';
-  import { page } from '$app/stores';
+  import { page, navigating } from '$app/stores'; // ✅ tilføj navigating
 
   let { children } = $props();
   let navOpen = $state(false);
@@ -27,6 +27,14 @@
 <div class="min-h-screen flex flex-col">
   <!-- Topbar -->
   <header class="sticky top-0 z-40 bg-brand-600 text-white shadow-md">
+
+    <!-- ✅ Loading-bar øverst i headeren -->
+    {#if $navigating}
+      <div class="absolute top-0 left-0 right-0 h-1 bg-white/30 overflow-hidden">
+        <div class="h-full bg-white animate-[loading_1s_ease-in-out_infinite]"></div>
+      </div>
+    {/if}
+
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
       <div class="flex items-center justify-between h-20">
         <!-- Logo -->
@@ -103,3 +111,12 @@
     Elines Krudtugler – Kalender
   </footer>
 </div>
+
+<!-- ✅ Tilføj animation i app.css i stedet hvis du foretrækker det -->
+<style>
+  @keyframes loading {
+    0%   { transform: translateX(-100%); width: 40%; }
+    50%  { width: 60%; }
+    100% { transform: translateX(250%); width: 40%; }
+  }
+</style>

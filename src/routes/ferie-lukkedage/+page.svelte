@@ -3,8 +3,7 @@
   import { closuresApi } from '$lib/api/closures';
   import { formatDate } from '$lib/utils/dates';
   import { closurePeriodLabels } from '$lib/types';
-  import { PageHeader, Button, Table, TableRow, EmptyState } from '$lib/components/ui';
-  import ConfirmButton from '$lib/components/ConfirmButton.svelte';
+  import { PageHeader, Button, Table, TableRow, EmptyState, ConfirmButton } from '$lib/components/ui';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

@@ -2,9 +2,8 @@
   import { invalidateAll } from '$app/navigation';
   import { dayStatusApi } from '$lib/api/daystatus';
   import { formatDate } from '$lib/utils/dates';
-  import { ChildDayStatusType, childDayStatusLabels } from '$lib/types';
-  import { PageHeader, Button, Table, TableRow, EmptyState, Badge } from '$lib/components/ui';
-  import ConfirmButton from '$lib/components/ConfirmButton.svelte';
+  import { childDayStatusLabels } from '$lib/types';
+  import { PageHeader, Button, Table, TableRow, EmptyState, ConfirmButton } from '$lib/components/ui';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

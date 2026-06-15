@@ -8,6 +8,7 @@
   import daLocale from '@fullcalendar/core/locales/da';
   import { API_BASE_URL } from '$lib/config';
   import { formatDate } from '$lib/utils/dates';
+  import { Modal } from '$lib/components/ui';
 
   interface Props {
     onDateClick: (dateStr: string) => void;
@@ -17,6 +18,10 @@
 
   let calendarEl: HTMLDivElement;
   let calendar: Calendar | undefined;
+
+  // Modal state
+  let eventModalOpen = $state(false);
+  let selectedEvent = $state<{ title: string; date: string; note: string } | null>(null);
 
   function isMobile(): boolean {
     return window.innerWidth < 700;
@@ -33,7 +38,6 @@
     };
   }
 
-  // Eksporteres så forælder-siden kan styre "Vis år"-knappen
   export function gotoYear(year: number) {
     if (!calendar) return;
     calendar.gotoDate(`${year}-01-01`);
@@ -63,7 +67,7 @@
       buttonText: {
         today: 'I dag',
         month: 'Måned',
-        year: 'År',
+        år: 'År',
         list: 'Liste'
       },
       views: {
@@ -75,7 +79,6 @@
           dayMaxEventRows: 10
         }
       },
-      // Events hentes fra API'et (absolut URL pga. separat backend)
       events: `${API_BASE_URL}/api/calendar/events`,
       dateClick: (info) => {
         onDateClick(info.dateStr);
@@ -84,13 +87,12 @@
         return { html: '<span class="fc-custom-event-title">' + arg.event.title + '</span>' };
       },
       eventClick: (info) => {
-        const note = info.event.extendedProps.note
-          ? '\n\n' + info.event.extendedProps.note
-          : '';
-        const dateStr = info.event.start
-          ? formatDate(info.event.start.toISOString())
-          : '';
-        alert(info.event.title + '\n' + dateStr + note);
+        selectedEvent = {
+          title: info.event.title,
+          date: info.event.start ? formatDate(info.event.start.toISOString()) : '',
+          note: info.event.extendedProps.note ?? ''
+        };
+        eventModalOpen = true;
       },
       windowResize: () => {
         calendar?.setOption('headerToolbar', getHeaderToolbar());
@@ -99,7 +101,6 @@
 
     calendar.render();
 
-    // Swipe på mobil (kun i månedsvisning)
     let touchStartX = 0;
     function handleTouchStart(e: TouchEvent) {
       touchStartX = e.changedTouches[0].screenX;
@@ -121,6 +122,20 @@
 </script>
 
 <div id="calendar" bind:this={calendarEl}></div>
+
+<!-- Event-detalje modal -->
+<Modal
+  open={eventModalOpen}
+  title={selectedEvent?.title ?? ''}
+  subtitle={selectedEvent?.date ?? ''}
+  onClose={() => (eventModalOpen = false)}
+>
+  {#if selectedEvent?.note}
+    <p class="text-warm-700 leading-relaxed">{selectedEvent.note}</p>
+  {:else}
+    <p class="text-warm-400 italic">Ingen bemærkning.</p>
+  {/if}
+</Modal>
 
 <style>
   :global(.fc .fc-button-group) {

@@ -7,9 +7,9 @@
     Button,
     Table,
     TableRow,
-    EmptyState
+    EmptyState,
+    ConfirmButton
   } from '$lib/components/ui';
-  import ConfirmButton from '$lib/components/ConfirmButton.svelte';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

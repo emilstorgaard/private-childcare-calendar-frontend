@@ -50,19 +50,32 @@ interface RequestOptions {
   fetchFn?: typeof fetch;
 }
 
+// ✅ Tilføj timeout i client.ts
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
   const { method = 'GET', body, fetchFn = fetch } = options;
 
-  const res = await fetchFn(`${API_BASE_URL}${path}`, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000); // 15 sek
 
-  return handleResponse<T>(res);
+  try {
+    const res = await fetchFn(`${API_BASE_URL}${path}`, {
+      method,
+      signal: controller.signal,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    return handleResponse<T>(res);
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ApiError('Serveren svarer ikke. Tjek din forbindelse.', 0);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // Bekvemheds-helpers
