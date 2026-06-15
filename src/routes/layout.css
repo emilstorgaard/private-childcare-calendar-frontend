@@ -124,6 +124,23 @@ body {
   @apply text-brand-600 font-semibold text-xs bg-brand-50 rounded px-1.5 py-0.5 no-underline!;
 }
 
+.fc .fc-daygrid-day:hover,
+.fc .fc-daygrid-day:focus {
+  background-color: inherit !important;
+}
+.fc .fc-day-sat:hover,
+.fc .fc-day-sat:focus {
+  @apply bg-warm-50!;
+}
+.fc .fc-day-sun:hover,
+.fc .fc-day-sun:focus {
+  @apply bg-warm-50!;
+}
+.fc .fc-day-today:hover,
+.fc .fc-day-today:focus {
+  @apply bg-brand-50/60!;
+}
+
 /* ============================================================
    EVENT COLORS
    ============================================================ */
@@ -134,14 +151,14 @@ body {
   @apply whitespace-normal leading-tight;
 }
 
-.event-child           { background: var(--color-event-child)!important;    color: #fff!important; }
-.event-start           { background: var(--color-event-start)!important;    color: #fff!important; }
-.event-free            { background: var(--color-event-free)!important;     color: #fff!important; }
-.event-sick            { background: var(--color-event-sick)!important;     color: #fff!important; }
-.event-dayoff          { background: var(--color-event-dayoff)!important;   color: #fff!important; }
-.event-note            { background: var(--color-event-note)!important;     color: #fff!important; }
-.event-waiting         { background: var(--color-event-waiting)!important;  color: #1d1d1d!important; }
-.event-closure         { background: var(--color-event-closure)!important;  color: #fff!important; }
+.event-child            { background: var(--color-event-child)!important;    color: #fff!important; }
+.event-start            { background: var(--color-event-start)!important;    color: #fff!important; }
+.event-free             { background: var(--color-event-free)!important;     color: #fff!important; }
+.event-sick             { background: var(--color-event-sick)!important;     color: #fff!important; }
+.event-dayoff           { background: var(--color-event-dayoff)!important;   color: #fff!important; }
+.event-note             { background: var(--color-event-note)!important;     color: #fff!important; }
+.event-waiting          { background: var(--color-event-waiting)!important;  color: #1d1d1d!important; }
+.event-closure          { background: var(--color-event-closure)!important;  color: #fff!important; }
 .event-closure-vacation { background: var(--color-event-vacation)!important; color: #fff!important; }
 .event-holiday {
   background: #d7ede0!important;
@@ -184,5 +201,55 @@ body {
   @apply bg-brand-50;
 }
 .fc .fc-list-event:hover td {
-  @apply bg-warm-50;
+  @apply bg-warm-100!;
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+@media (max-width: 700px) {
+  #calendar {
+    @apply p-2;
+  }
+
+  .fc .fc-toolbar {
+    @apply gap-2;
+  }
+
+  .fc .fc-toolbar-title {
+    @apply text-base!;
+  }
+
+  .fc .fc-button {
+    @apply px-2! py-1! text-xs!;
+  }
+
+  .fc .fc-daygrid-day-frame {
+    min-height: 60px;
+  }
+
+  .fc .fc-daygrid-day-number {
+    @apply text-xs px-1 py-0.5;
+  }
+
+  .fc .fc-daygrid-event {
+    @apply text-xs px-1 py-0;
+  }
+
+  .fc .fc-list-day-cushion {
+    @apply py-1.5;
+  }
+
+  .fc .fc-list-event-time {
+    display: none;
+  }
+
+  .fc .fc-list-event-title {
+    @apply text-sm;
+  }
+
+  .fc .fc-list-day-text,
+  .fc .fc-list-day-side-text {
+    @apply text-sm;
+  }
 }

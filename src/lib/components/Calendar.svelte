@@ -143,4 +143,28 @@
   :global(.fc .fc-button) {
     margin: 0 2px;
   }
+
+  @media (max-width: 700px) {
+    :global(.fc .fc-toolbar-title) {
+      font-size: 1rem;
+    }
+
+    :global(.fc .fc-button) {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    :global(.fc .fc-list-event-title) {
+      font-size: 0.85rem;
+    }
+
+    :global(.fc .fc-list-day-text),
+    :global(.fc .fc-list-day-side-text) {
+      font-size: 0.85rem;
+    }
+
+    :global(.fc .fc-list-event-time) {
+      display: none;
+    }
+  }
 </style>

@@ -13,10 +13,10 @@
   ];
 </script>
 
-<div class="flex flex-wrap gap-x-4 gap-y-2 mb-5">
+<div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-x-4 gap-y-2 mb-5 p-3 sm:p-0 bg-warm-50 sm:bg-transparent rounded-xl sm:rounded-none border border-warm-100 sm:border-0">
   {#each items as item}
-    <span class="inline-flex items-center gap-2 text-sm text-warm-600">
-      <i class="w-3 h-3 rounded-full {item.color}"></i>
+    <span class="inline-flex items-center gap-2 text-xs sm:text-sm text-warm-600">
+      <i class="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0 rounded-full {item.color}"></i>
       {item.label}
     </span>
   {/each}
