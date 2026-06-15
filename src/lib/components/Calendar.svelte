@@ -37,24 +37,6 @@
 		};
 	}
 
-	export function gotoYear(year: number) {
-		if (!calendar) return;
-		calendar.gotoDate(`${year}-01-01`);
-		calendar.changeView('multiMonthYear');
-	}
-
-	export function gotoMonth() {
-		if (!calendar) return;
-		calendar.gotoDate(new Date());
-		calendar.changeView('dayGridMonth');
-	}
-
-	export function gotoList() {
-		if (!calendar) return;
-		calendar.gotoDate(new Date());
-		calendar.changeView('listMonth');
-	}
-
 	onMount(() => {
 		calendar = new Calendar(calendarEl, {
 			plugins: [daygridPlugin, listPlugin, multiMonthPlugin, interactionPlugin],

@@ -21,18 +21,6 @@
 		modalOpen = true;
 	}
 
-	function showYear() {
-		calendarComponent?.gotoYear(exportYear);
-	}
-
-	function showMonth() {
-		calendarComponent?.gotoMonth();
-	}
-
-	function showList() {
-		calendarComponent?.gotoList();
-	}
-
 	function exportExcel() {
 		window.location.href = `${API_BASE_URL}/api/export/year/${exportYear}/excel`;
 	}
@@ -49,22 +37,16 @@
 <CalendarLegend />
 
 <Card class="mb-5">
-	<div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-		<div class="flex items-center gap-2 flex-wrap">
+	<div class="flex flex-wrap items-center gap-3">
+		<div class="flex items-center gap-2">
 			<label for="exportYear" class="text-sm font-semibold text-warm-700 whitespace-nowrap"
 				>År:</label
 			>
 			<div class="w-20">
 				<Input id="exportYear" type="number" bind:value={exportYear} min={2020} max={2100} />
 			</div>
-			<div class="flex gap-1.5">
-				<Button variant="secondary" size="sm" onclick={showYear}>Vis år</Button>
-				<Button variant="secondary" size="sm" onclick={showMonth}>Vis måned</Button>
-				<Button variant="secondary" size="sm" onclick={showList}>Vis liste</Button>
-			</div>
 		</div>
-
-		<div class="flex gap-1.5 sm:ml-auto">
+		<div class="flex gap-1.5 ml-auto">
 			<Button variant="secondary" size="sm" onclick={exportExcel}>📊 Excel</Button>
 			<Button variant="secondary" size="sm" onclick={exportPdf}>📄 PDF</Button>
 		</div>
