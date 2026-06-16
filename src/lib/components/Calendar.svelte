@@ -8,7 +8,8 @@
     import daLocale from '@fullcalendar/core/locales/da';
     import { API_BASE_URL } from '$lib/config';
     import { formatDate } from '$lib/utils/dates';
-    import { Modal } from '$lib/components/ui';
+    import { goto } from '$app/navigation';
+    import { Modal, Button } from '$lib/components/ui';
 
     interface Props {
         onDateClick: (dateStr: string) => void;
@@ -21,7 +22,14 @@
     let currentView = $state('dayGridMonth');
 
     let eventModalOpen = $state(false);
-    let selectedEvent = $state<{ title: string; date: string; note: string } | null>(null);
+    let deleting = $state(false);
+    let selectedEvent = $state<{
+        title: string;
+        date: string;
+        note: string;
+        editUrl: string | null;
+        deleteUrl: string | null;
+    } | null>(null);
 
     function isMobile(): boolean {
         return window.innerWidth < 700;
@@ -38,6 +46,58 @@
     export function setView(view: string) {
         calendar?.changeView(view);
         currentView = view;
+    }
+
+    function resolveUrls(
+        extendedProps: Record<string, unknown>,
+        className: string
+    ): { editUrl: string | null; deleteUrl: string | null } {
+        const id = extendedProps?.id as number | undefined;
+
+        const map: Record<string, { edit: string; delete: string | null } | null> = {
+            'event-child':            id ? { edit: `/boern/${id}`,           delete: null } : null,
+            'event-start':            id ? { edit: `/boern/${id}`,           delete: null } : null,
+            'event-free':             id ? { edit: `/boern/${id}`,           delete: null } : null,
+            'event-birthday':         id ? { edit: `/boern/${id}`,           delete: null } : null,
+            'event-holiday':          null,
+            'event-sick':             id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}` }      : null,
+            'event-dayoff':           id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}` }      : null,
+            'event-note':             id ? { edit: `/kalenderinfo/${id}`,    delete: `/api/notes/${id}` }           : null,
+            'event-waiting':          id ? { edit: `/venteliste/${id}`,      delete: `/api/waitinglist/${id}` }     : null,
+            'event-closure':          id ? { edit: `/ferie-lukkedage/${id}`, delete: `/api/closureperiods/${id}` }  : null,
+            'event-closure-vacation': id ? { edit: `/ferie-lukkedage/${id}`, delete: `/api/closureperiods/${id}` }  : null,
+        };
+
+        const entry = map[className] ?? null;
+        return {
+            editUrl:   entry?.edit   ?? null,
+            deleteUrl: entry?.delete ?? null,
+        };
+    }
+
+    async function handleDelete() {
+        if (!selectedEvent?.deleteUrl) return;
+        if (!confirm('Er du sikker på at du vil slette dette?')) return;
+
+        deleting = true;
+        try {
+            const res = await fetch(`${API_BASE_URL}${selectedEvent.deleteUrl}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) throw new Error('Sletning fejlede.');
+            eventModalOpen = false;
+            calendar?.refetchEvents();
+        } catch {
+            alert('Kunne ikke slette. Prøv igen.');
+        } finally {
+            deleting = false;
+        }
+    }
+
+    function handleEdit() {
+        if (!selectedEvent?.editUrl) return;
+        eventModalOpen = false;
+        goto(selectedEvent.editUrl);
     }
 
     onMount(() => {
@@ -82,10 +142,16 @@
                 return { html: '<span class="fc-custom-event-title">' + arg.event.title + '</span>' };
             },
             eventClick: (info) => {
+                const className = info.event.classNames[0] ?? '';
+                const extendedProps = info.event.extendedProps as Record<string, unknown>;
+                const { editUrl, deleteUrl } = resolveUrls(extendedProps, className);
+
                 selectedEvent = {
-                    title: info.event.title,
-                    date: info.event.start ? formatDate(info.event.start.toISOString()) : '',
-                    note: info.event.extendedProps.note ?? ''
+                    title:     info.event.title,
+                    date:      info.event.start ? formatDate(info.event.start.toISOString()) : '',
+                    note:      (extendedProps.note as string) ?? '',
+                    editUrl,
+                    deleteUrl,
                 };
                 eventModalOpen = true;
             },
@@ -128,9 +194,22 @@
     onClose={() => (eventModalOpen = false)}
 >
     {#if selectedEvent?.note}
-        <p class="text-warm-700 leading-relaxed">{selectedEvent.note}</p>
+        <p class="text-warm-700 leading-relaxed mb-5">{selectedEvent.note}</p>
     {:else}
-        <p class="text-warm-400 italic">Ingen bemærkning.</p>
+        <p class="text-warm-400 italic mb-5">Ingen bemærkning.</p>
+    {/if}
+
+    {#if selectedEvent?.editUrl || selectedEvent?.deleteUrl}
+        <div class="flex flex-wrap gap-2 pt-4 border-t border-warm-100">
+            {#if selectedEvent.editUrl}
+                <Button variant="secondary" onclick={handleEdit}>✏️ Rediger</Button>
+            {/if}
+            {#if selectedEvent.deleteUrl}
+                <Button variant="danger" onclick={handleDelete} disabled={deleting}>
+                    {deleting ? 'Sletter…' : '🗑️ Slet'}
+                </Button>
+            {/if}
+        </div>
     {/if}
 </Modal>
 

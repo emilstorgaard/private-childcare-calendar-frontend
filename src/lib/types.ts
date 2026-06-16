@@ -92,6 +92,7 @@ export interface CalendarEvent {
   sortOrder: number;
   extendedProps: {
     note: string;
+    id: number | null;
   };
 }
 
