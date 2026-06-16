@@ -29,7 +29,11 @@
         note: string;
         editUrl: string | null;
         deleteUrl: string | null;
+        deleteWarning: string;
     } | null>(null);
+
+    // Bekræftelsesmodal
+    let confirmModalOpen = $state(false);
 
     function isMobile(): boolean {
         return window.innerWidth < 700;
@@ -51,35 +55,36 @@
     function resolveUrls(
         extendedProps: Record<string, unknown>,
         className: string
-    ): { editUrl: string | null; deleteUrl: string | null } {
+    ): { editUrl: string | null; deleteUrl: string | null; deleteWarning: string } {
         const id = extendedProps?.id as number | undefined;
 
-        const map: Record<string, { edit: string; delete: string | null } | null> = {
-            'event-child':            id ? { edit: `/boern/${id}`,           delete: null } : null,
-            'event-start':            id ? { edit: `/boern/${id}`,           delete: null } : null,
-            'event-free':             id ? { edit: `/boern/${id}`,           delete: null } : null,
-            'event-birthday':         id ? { edit: `/boern/${id}`,           delete: null } : null,
+        const map: Record<string, { edit: string; delete: string | null; warning: string } | null> = {
+            'event-child':            id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
+            'event-start':            id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
+            'event-free':             id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
+            'event-birthday':         id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
             'event-holiday':          null,
-            'event-sick':             id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}` }      : null,
-            'event-dayoff':           id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}` }      : null,
-            'event-note':             id ? { edit: `/kalenderinfo/${id}`,    delete: `/api/notes/${id}` }           : null,
-            'event-waiting':          id ? { edit: `/venteliste/${id}`,      delete: `/api/waitinglist/${id}` }     : null,
-            'event-closure':          id ? { edit: `/ferie-lukkedage/${id}`, delete: `/api/closureperiods/${id}` }  : null,
-            'event-closure-vacation': id ? { edit: `/ferie-lukkedage/${id}`, delete: `/api/closureperiods/${id}` }  : null,
+            'event-sick':             id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}`,      warning: 'Er du sikker på at du vil slette denne sygedag/fridag?' }      : null,
+            'event-dayoff':           id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}`,      warning: 'Er du sikker på at du vil slette denne sygedag/fridag?' }      : null,
+            'event-note':             id ? { edit: `/kalenderinfo/${id}`,    delete: `/api/notes/${id}`,          warning: 'Er du sikker på at du vil slette denne kalenderinfo?' }         : null,
+            'event-waiting':          id ? { edit: `/venteliste/${id}`,      delete: `/api/waitinglist/${id}`,    warning: 'Er du sikker på at du vil slette denne ventelistepost?' }       : null,
+            'event-closure':          id ? { edit: `/ferie-lukkedage/${id}`, delete: `/api/closureperiods/${id}`, warning: 'Er du sikker på at du vil slette denne ferie/lukkedag?' }       : null,
+            'event-closure-vacation': id ? { edit: `/ferie-lukkedage/${id}`, delete: `/api/closureperiods/${id}`, warning: 'Er du sikker på at du vil slette denne ferie/lukkedag?' }       : null,
         };
 
         const entry = map[className] ?? null;
         return {
-            editUrl:   entry?.edit   ?? null,
-            deleteUrl: entry?.delete ?? null,
+            editUrl:       entry?.edit    ?? null,
+            deleteUrl:     entry?.delete  ?? null,
+            deleteWarning: entry?.warning ?? 'Er du sikker?',
         };
     }
 
-    async function handleDelete() {
+    async function confirmDelete() {
         if (!selectedEvent?.deleteUrl) return;
-        if (!confirm('Er du sikker på at du vil slette dette?')) return;
 
         deleting = true;
+        confirmModalOpen = false;
         try {
             const res = await fetch(`${API_BASE_URL}${selectedEvent.deleteUrl}`, {
                 method: 'DELETE'
@@ -88,7 +93,8 @@
             eventModalOpen = false;
             calendar?.refetchEvents();
         } catch {
-            alert('Kunne ikke slette. Prøv igen.');
+            // Vis fejl i event-modalen igen
+            eventModalOpen = true;
         } finally {
             deleting = false;
         }
@@ -98,6 +104,11 @@
         if (!selectedEvent?.editUrl) return;
         eventModalOpen = false;
         goto(selectedEvent.editUrl);
+    }
+
+    function handleDeleteClick() {
+        eventModalOpen = false;
+        confirmModalOpen = true;
     }
 
     onMount(() => {
@@ -120,6 +131,7 @@
             eventOrder: 'sortOrder,title',
             eventOrderStrict: true,
             multiMonthMaxColumns: 1,
+            multiMonthMinWidth: 300,
             headerToolbar: getHeaderToolbar(),
             buttonText: {
                 today: 'I dag'
@@ -143,14 +155,15 @@
             eventClick: (info) => {
                 const className = info.event.classNames[0] ?? '';
                 const extendedProps = info.event.extendedProps as Record<string, unknown>;
-                const { editUrl, deleteUrl } = resolveUrls(extendedProps, className);
+                const { editUrl, deleteUrl, deleteWarning } = resolveUrls(extendedProps, className);
 
                 selectedEvent = {
-                    title:     info.event.title,
-                    date:      info.event.start ? formatDate(info.event.start.toISOString()) : '',
-                    note:      (extendedProps.note as string) ?? '',
+                    title:         info.event.title,
+                    date:          info.event.start ? formatDate(info.event.start.toISOString()) : '',
+                    note:          (extendedProps.note as string) ?? '',
                     editUrl,
                     deleteUrl,
+                    deleteWarning,
                 };
                 eventModalOpen = true;
             },
@@ -190,12 +203,31 @@
                 <Button variant="secondary" onclick={handleEdit}>✏️ Rediger</Button>
             {/if}
             {#if selectedEvent.deleteUrl}
-                <Button variant="danger" onclick={handleDelete} disabled={deleting}>
+                <Button variant="danger" onclick={handleDeleteClick} disabled={deleting}>
                     {deleting ? 'Sletter…' : '🗑️ Slet'}
                 </Button>
             {/if}
         </div>
     {/if}
+</Modal>
+
+<Modal
+    open={confirmModalOpen}
+    title="Bekræft sletning"
+    onClose={() => { confirmModalOpen = false; eventModalOpen = true; }}
+>
+    <p class="text-warm-700 mb-6">{selectedEvent?.deleteWarning ?? 'Er du sikker?'}</p>
+    <div class="flex flex-wrap gap-2">
+        <Button variant="danger" onclick={confirmDelete} disabled={deleting}>
+            {deleting ? 'Sletter…' : '🗑️ Ja, slet'}
+        </Button>
+        <Button
+            variant="secondary"
+            onclick={() => { confirmModalOpen = false; eventModalOpen = true; }}
+        >
+            Annuller
+        </Button>
+    </div>
 </Modal>
 
 <style>

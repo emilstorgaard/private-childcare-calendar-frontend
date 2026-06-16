@@ -155,9 +155,11 @@
 						<ConfirmButton
 							label="Gendan"
 							variant="secondary"
+							title="Bekræft gendannelse"
+							confirmLabel="Ja, gendan"
 							message="Gendan databasen fra denne backup? Alle nuværende data overskrives!"
 							onConfirm={() => handleRestore(backup.fileName)}
-						/>
+							/>
 						<ConfirmButton
 							message="Slet backupfilen?"
 							onConfirm={() => handleDelete(backup.fileName)}
