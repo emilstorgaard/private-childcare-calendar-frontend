@@ -27,12 +27,14 @@
         title: string;
         date: string;
         note: string;
+        typeText: string;
+        colorClass: string;
+        isBirthday: boolean;
         editUrl: string | null;
         deleteUrl: string | null;
         deleteWarning: string;
     } | null>(null);
 
-    // Bekræftelsesmodal
     let confirmModalOpen = $state(false);
 
     function isMobile(): boolean {
@@ -157,10 +159,27 @@
                 const extendedProps = info.event.extendedProps as Record<string, unknown>;
                 const { editUrl, deleteUrl, deleteWarning } = resolveUrls(extendedProps, className);
 
+                const typeLabels: Record<string, string> = {
+                    'event-child': 'Barn',
+                    'event-start': 'Opstart',
+                    'event-free': 'Fridag',
+                    'event-birthday': 'Fødselsdag',
+                    'event-holiday': 'Helligdag',
+                    'event-sick': 'Sygedag',
+                    'event-dayoff': 'Fridag',
+                    'event-note': 'Kalenderinfo',
+                    'event-waiting': 'Venteliste',
+                    'event-closure': 'Lukkedag',
+                    'event-closure-vacation': 'Ferie',
+                };
+
                 selectedEvent = {
                     title:         info.event.title,
                     date:          info.event.start ? formatDate(info.event.start.toISOString()) : '',
                     note:          (extendedProps.note as string) ?? '',
+                    typeText:      typeLabels[className] ?? 'Begivenhed',
+                    colorClass:    className,
+                    isBirthday:    className === 'event-birthday',
                     editUrl,
                     deleteUrl,
                     deleteWarning,
@@ -191,6 +210,15 @@
     subtitle={selectedEvent?.date ?? ''}
     onClose={() => (eventModalOpen = false)}
 >
+    {#if selectedEvent?.typeText}
+        <div class="mb-4">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold 
+                {selectedEvent.isBirthday ? 'bg-event-birthday-bg text-event-birthday border border-event-birthday' : selectedEvent.colorClass + ' text-white'}">
+                {selectedEvent.typeText}
+            </span>
+        </div>
+    {/if}
+
     {#if selectedEvent?.note}
         <p class="text-warm-700 leading-relaxed mb-5">{selectedEvent.note}</p>
     {:else}
@@ -262,4 +290,80 @@
             display: none;
         }
     }
+
+    /* ---- Cursor pointer på alle events ---- */
+    :global(.fc-list),
+    :global(.fc .fc-list-table),
+    :global(.fc .fc-list-event),
+    :global(.fc .fc-list-event td),
+    :global(.fc .fc-list-event-hoverable),
+    :global(.fc .fc-list-event *),
+    :global(.fc .fc-event),
+    :global(.fc .fc-daygrid-event),
+    :global(.fc .fc-daygrid-dot-event),
+    :global(.fc .fc-timegrid-event),
+    :global(.fc .fc-event-main),
+    :global(.fc-custom-event-title) {
+        cursor: pointer !important;
+    }
+
+    :global(.fc .fc-list-event-title),
+    :global(.fc .fc-list-event-graphic) {
+        pointer-events: auto !important;
+    }
+
+    /* ---- LIST-view: sæt hover-variabel + override td direkte ---- */
+    :global(.fc) {
+        --fc-list-event-hover-bg-color: transparent !important;
+    }
+
+    :global(.fc .fc-list-event:hover),
+    :global(.fc .fc-list-event:hover td),
+    :global(.fc .fc-list-event-hoverable:hover),
+    :global(.fc .fc-list-event-hoverable:hover td),
+    :global(.fc .fc-list-table tr:hover),
+    :global(.fc .fc-list-table tr:hover td),
+    :global(.fc-theme-standard .fc-list-event:hover td) {
+        background-color: transparent !important;
+        background: none !important;
+    }
+
+    /* ---- DAYGRID / TIMEGRID / MULTIMONTH ---- */
+    /* Brug currentColor/transparent IKKE inherit (inherit = hvid fra dagcelle) */
+    :global(.fc .fc-daygrid-event:hover),
+    :global(.fc .fc-daygrid-dot-event:hover),
+    :global(.fc .fc-h-event:hover),
+    :global(.fc .fc-v-event:hover),
+    :global(.fc .fc-timegrid-event:hover) {
+        filter: none !important;
+        opacity: 1 !important;
+        box-shadow: none !important;
+    }
+
+    /* Dot-events skal forblive uden baggrund */
+    :global(.fc .fc-daygrid-dot-event:hover) {
+        background: none !important;
+        background-color: transparent !important;
+    }
+
+    :global(.fc) {
+    --fc-list-event-hover-bg-color: transparent !important;
+}
+
+:global(.fc .fc-list-event:hover),
+:global(.fc .fc-list-event:hover td),
+:global(.fc .fc-list-event:hover > td),
+:global(.fc .fc-list-event-hoverable:hover),
+:global(.fc .fc-list-event-hoverable:hover td),
+:global(.fc .fc-list-table tbody tr:hover),
+:global(.fc .fc-list-table tbody tr:hover td),
+:global(.fc-theme-standard .fc-list-event:hover td),
+:global(.fc-theme-standard .fc-list-event:hover),
+:global(.fc .fc-list-day-cushion:hover),
+:global(.fc table.fc-list-table tr.fc-list-event:hover td) {
+    background-color: transparent !important;
+    background: none !important;
+    background-image: none !important;
+}
+
 </style>

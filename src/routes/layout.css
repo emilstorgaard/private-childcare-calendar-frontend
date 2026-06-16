@@ -200,9 +200,9 @@ body {
 .fc .fc-list-day-cushion {
   @apply bg-brand-50;
 }
-.fc .fc-list-event:hover td {
+/* .fc .fc-list-event:hover td {
   @apply bg-warm-100!;
-}
+} */
 
 /* ============================================================
    MOBILE
