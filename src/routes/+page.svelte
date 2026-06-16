@@ -84,7 +84,8 @@
     <Calendar bind:this={calendarComponent} onDateClick={handleDateClick} />
 </Card>
 
-<div class="fixed bottom-6 right-5 sm:hidden z-50">
+{#if activeView === 'listMonth'}
+<div class="fixed bottom-6 right-5 z-50">
     <button
         type="button"
         onclick={handleFabClick}
@@ -94,5 +95,6 @@
         +
     </button>
 </div>
+{/if}
 
 <DateModal open={modalOpen} dateStr={selectedDate} onClose={() => (modalOpen = false)} />
