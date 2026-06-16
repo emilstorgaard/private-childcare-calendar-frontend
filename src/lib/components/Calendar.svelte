@@ -119,8 +119,7 @@
             dayMaxEventRows: 10,
             eventOrder: 'sortOrder,title',
             eventOrderStrict: true,
-            multiMonthMaxColumns: 3,
-            multiMonthMinWidth: 420,
+            multiMonthMaxColumns: 1,
             headerToolbar: getHeaderToolbar(),
             buttonText: {
                 today: 'I dag'
