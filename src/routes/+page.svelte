@@ -9,7 +9,11 @@
     let modalOpen = $state(false);
     let selectedDate = $state('');
     let exportYear = $state(new Date().getFullYear());
-    let activeView = $state('dayGridMonth');
+    let activeView = $state(
+        typeof window !== 'undefined' && window.innerWidth < 700
+            ? 'listMonth'
+            : 'dayGridMonth'
+    );
 
     function handleDateClick(dateStr: string) {
         selectedDate = dateStr;
