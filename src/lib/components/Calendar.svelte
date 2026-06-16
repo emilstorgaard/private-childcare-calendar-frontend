@@ -164,20 +164,6 @@
         });
 
         calendar.render();
-
-        let touchStartX = 0;
-        function handleTouchStart(e: TouchEvent) {
-            touchStartX = e.changedTouches[0].screenX;
-        }
-        function handleTouchEnd(e: TouchEvent) {
-            if (!calendar || calendar.view.type !== 'dayGridMonth') return;
-            const diff = touchStartX - e.changedTouches[0].screenX;
-            if (diff > 50) calendar.next();
-            if (diff < -50) calendar.prev();
-        }
-
-        calendarEl.addEventListener('touchstart', handleTouchStart, { passive: true });
-        calendarEl.addEventListener('touchend', handleTouchEnd, { passive: true });
     });
 
     onDestroy(() => {
