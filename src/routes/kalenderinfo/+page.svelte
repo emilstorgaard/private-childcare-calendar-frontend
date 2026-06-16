@@ -17,12 +17,28 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const todayNotes = $derived(
+        data.notes.filter((note) => {
+            const noteDate = new Date(note.date);
+            noteDate.setHours(0, 0, 0, 0);
+            return noteDate.getTime() === today.getTime();
+        })
+    );
+
     const upcomingNotes = $derived(
-        data.notes.filter((note) => new Date(note.date) >= today)
+        data.notes.filter((note) => {
+            const noteDate = new Date(note.date);
+            noteDate.setHours(0, 0, 0, 0);
+            return noteDate > today;
+        })
     );
 
     const pastNotes = $derived(
-        data.notes.filter((note) => new Date(note.date) < today)
+        data.notes.filter((note) => {
+            const noteDate = new Date(note.date);
+            noteDate.setHours(0, 0, 0, 0);
+            return noteDate < today;
+        })
     );
 
     async function handleDelete(id: number) {
@@ -46,6 +62,28 @@
         {/snippet}
     </EmptyState>
 {:else}
+    {#if todayNotes.length > 0}
+        <PageHeader title="I dag" subtitle="Informationer for dags dato" variant="section" />
+        <Table headers={['Dato', 'Overskrift', 'Bemærkning', '']}>
+            {#each todayNotes as note}
+                <TableRow
+                    cells={[
+                        { label: 'Dato', value: formatDate(note.date) },
+                        { label: 'Overskrift', value: note.title },
+                        { label: 'Bemærkning', value: note.note ?? '' }
+                    ]}
+                >
+                    {#snippet actions()}
+                        <Button variant="secondary" size="sm" href="/kalenderinfo/{note.id}">Ret</Button>
+                        <ConfirmButton message="Slet linjen?" onConfirm={() => handleDelete(note.id)} />
+                    {/snippet}
+                </TableRow>
+            {/each}
+        </Table>
+    {:else}
+        <EmptyState message="Ingen specifikke noter for i dag." icon="✨" />
+    {/if}
+
     {#if upcomingNotes.length > 0}
         <PageHeader title="Kommende info" subtitle="Noter og informationer for den kommende tid" variant="section" />
         <Table headers={['Dato', 'Overskrift', 'Bemærkning', '']}>
@@ -64,8 +102,6 @@
                 </TableRow>
             {/each}
         </Table>
-    {:else}
-        <EmptyState message="Ingen kommende kalendernoter." icon="📝" />
     {/if}
 
     {#if pastNotes.length > 0}
