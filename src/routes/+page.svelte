@@ -14,6 +14,7 @@
             ? 'listMonth'
             : 'dayGridMonth'
     );
+    let isLargeWeek = $state(false);
 
     function handleDateClick(dateStr: string) {
         selectedDate = dateStr;
@@ -28,6 +29,10 @@
 
     function handleViewChange(view: string) {
         activeView = view;
+    }
+
+    function handleLargeChange(large: boolean) {
+        isLargeWeek = large;
     }
 
     function exportExcel() {
@@ -65,10 +70,11 @@
         bind:this={calendarComponent}
         onDateClick={handleDateClick}
         onViewChange={handleViewChange}
+        onLargeChange={handleLargeChange}
     />
 </Card>
 
-{#if activeView === 'listMonth'}
+{#if (activeView === 'listMonth' || activeView === 'weekGrid') && !isLargeWeek}
 <div class="fixed bottom-6 right-5 z-50">
     <button
         type="button"

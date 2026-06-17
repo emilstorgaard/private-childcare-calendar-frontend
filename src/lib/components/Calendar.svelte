@@ -12,17 +12,18 @@
         toDateStr,
         getWeekNumber
     } from '$lib/utils/calendar';
-    import MonthView from './calendar/MonthView.svelte';
-    import YearView from './calendar/YearView.svelte';
-    import ListView from './calendar/ListView.svelte';
-    import WeekView from './calendar/WeekView.svelte';
+    import MonthView from '$lib/components/calendar/MonthView.svelte';
+    import YearView from '$lib/components/calendar/YearView.svelte';
+    import ListView from '$lib/components/calendar/ListView.svelte';
+    import WeekView from '$lib/components/calendar/WeekView.svelte';
 
     interface Props {
         onDateClick: (dateStr: string) => void;
         onViewChange?: (view: string) => void;
+        onLargeChange?: (large: boolean) => void;
     }
 
-    let { onDateClick, onViewChange }: Props = $props();
+    let { onDateClick, onViewChange, onLargeChange }: Props = $props();
 
     let view = $state<'dayGridMonth' | 'weekGrid' | 'multiMonthYear' | 'listMonth'>('dayGridMonth');
     let cursorDate = $state(new Date());
@@ -33,6 +34,7 @@
 
     let eventsByDate = $derived(groupEventsByDate(events));
 
+    // ---- Auto-refresh ----
     const REFRESH_MINUTES = 5;
 
     function getStoredAutoRefresh(): boolean {
@@ -44,6 +46,7 @@
                 return cfg.enabled === true;
             }
         } catch {
+            // ignorér korrupt værdi
         }
         return false;
     }
@@ -77,6 +80,7 @@
         }
     }
 
+    // Gem indstilling i localStorage ved ændring
     $effect(() => {
         if (typeof window === 'undefined') return;
         localStorage.setItem('cal-auto-refresh', JSON.stringify({ enabled: autoRefresh }));
@@ -101,6 +105,7 @@
         view = v as typeof view;
         largeWeek = false;
         onViewChange?.(view);
+        onLargeChange?.(false);
         loadEvents();
     }
 
@@ -108,6 +113,7 @@
         view = v;
         largeWeek = false;
         onViewChange?.(view);
+        onLargeChange?.(false);
         loadEvents();
     }
 
@@ -157,6 +163,7 @@
             onViewChange?.(view);
         }
 
+        // Start timeren hvis auto-refresh var slået til (gendannet fra localStorage)
         if (autoRefresh) {
             startAutoRefresh();
             lastRefresh = new Date();
@@ -192,11 +199,13 @@
 
     function toggleLargeWeek() {
         largeWeek = !largeWeek;
+        onLargeChange?.(largeWeek);
     }
 
     function handleKeydown(e: KeyboardEvent) {
         if (largeWeek && e.key === 'Escape') {
             largeWeek = false;
+            onLargeChange?.(largeWeek);
         }
     }
 
@@ -299,6 +308,7 @@
                 <button type="button" class="cal-btn" onclick={next} aria-label="Næste">›</button>
                 <button type="button" class="cal-btn cal-btn-today" onclick={today}>I dag</button>
 
+                <!-- Auto-refresh toggle -->
                 <button
                     type="button"
                     class="cal-btn cal-refresh-btn"
@@ -353,6 +363,7 @@
             <ListView {cursorDate} {eventsByDate} onEventClick={handleEventClick} />
         {/if}
     {:else}
+        <!-- STOR / FOKUS-tilstand -->
         <div class="large-toolbar">
             <button type="button" class="cal-btn" onclick={prev} aria-label="Forrige uge">‹ Forrige</button>
             <h2 class="large-title">Uge {getWeekNumber(cursorDate)} · {cursorDate.getFullYear()}</h2>
