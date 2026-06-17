@@ -325,8 +325,8 @@
             </h2>
 
             <div class="cal-views" role="group" aria-label="Skift visning">
-                <button type="button" class="cal-view-btn" class:active={view === 'dayGridMonth'} onclick={() => changeView('dayGridMonth')}>Måned</button>
                 <button type="button" class="cal-view-btn" class:active={view === 'weekGrid'} onclick={() => changeView('weekGrid')}>Uge</button>
+                <button type="button" class="cal-view-btn" class:active={view === 'dayGridMonth'} onclick={() => changeView('dayGridMonth')}>Måned</button>
                 <button type="button" class="cal-view-btn" class:active={view === 'multiMonthYear'} onclick={() => changeView('multiMonthYear')}>År</button>
                 <button type="button" class="cal-view-btn" class:active={view === 'listMonth'} onclick={() => changeView('listMonth')}>Liste</button>
             </div>
