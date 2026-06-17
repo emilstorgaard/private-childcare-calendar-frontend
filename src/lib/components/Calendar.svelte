@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { goto } from '$app/navigation';
     import { API_BASE_URL } from '$lib/config';
     import { formatDate } from '$lib/utils/dates';
@@ -9,11 +9,13 @@
         type CalendarEvent,
         groupEventsByDate,
         getEventClass,
-        toDateStr
+        toDateStr,
+        getWeekNumber
     } from '$lib/utils/calendar';
     import MonthView from './calendar/MonthView.svelte';
     import YearView from './calendar/YearView.svelte';
     import ListView from './calendar/ListView.svelte';
+    import WeekView from './calendar/WeekView.svelte';
 
     interface Props {
         onDateClick: (dateStr: string) => void;
@@ -22,13 +24,63 @@
 
     let { onDateClick, onViewChange }: Props = $props();
 
-    let view = $state<'dayGridMonth' | 'multiMonthYear' | 'listMonth'>('dayGridMonth');
+    let view = $state<'dayGridMonth' | 'weekGrid' | 'multiMonthYear' | 'listMonth'>('dayGridMonth');
     let cursorDate = $state(new Date());
+    let largeWeek = $state(false);
 
     let events = $state<CalendarEvent[]>([]);
     let loading = $state(false);
 
     let eventsByDate = $derived(groupEventsByDate(events));
+
+    const REFRESH_MINUTES = 5;
+
+    function getStoredAutoRefresh(): boolean {
+        if (typeof window === 'undefined') return false;
+        try {
+            const saved = localStorage.getItem('cal-auto-refresh');
+            if (saved) {
+                const cfg = JSON.parse(saved);
+                return cfg.enabled === true;
+            }
+        } catch {
+        }
+        return false;
+    }
+
+    let autoRefresh = $state(getStoredAutoRefresh());
+    let refreshTimer: ReturnType<typeof setInterval> | null = null;
+    let lastRefresh = $state<Date | null>(null);
+
+    function startAutoRefresh() {
+        stopAutoRefresh();
+        refreshTimer = setInterval(() => {
+            loadEvents();
+            lastRefresh = new Date();
+        }, REFRESH_MINUTES * 60 * 1000);
+    }
+
+    function stopAutoRefresh() {
+        if (refreshTimer) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+        }
+    }
+
+    function toggleAutoRefresh() {
+        autoRefresh = !autoRefresh;
+        if (autoRefresh) {
+            startAutoRefresh();
+            lastRefresh = new Date();
+        } else {
+            stopAutoRefresh();
+        }
+    }
+
+    $effect(() => {
+        if (typeof window === 'undefined') return;
+        localStorage.setItem('cal-auto-refresh', JSON.stringify({ enabled: autoRefresh }));
+    });
 
     let eventModalOpen = $state(false);
     let confirmModalOpen = $state(false);
@@ -47,12 +99,14 @@
 
     export function setView(v: string) {
         view = v as typeof view;
+        largeWeek = false;
         onViewChange?.(view);
         loadEvents();
     }
 
     function changeView(v: typeof view) {
         view = v;
+        largeWeek = false;
         onViewChange?.(view);
         loadEvents();
     }
@@ -64,6 +118,15 @@
                 start: `${d.getFullYear()}-01-01`,
                 end: `${d.getFullYear() + 1}-01-01`
             };
+        }
+        if (view === 'weekGrid') {
+            const offset = (d.getDay() + 6) % 7;
+            const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - offset);
+            const start = new Date(monday);
+            start.setDate(start.getDate() - 1);
+            const end = new Date(monday);
+            end.setDate(end.getDate() + 8);
+            return { start: toDateStr(start), end: toDateStr(end) };
         }
         const start = new Date(d.getFullYear(), d.getMonth() - 1, 1);
         const end = new Date(d.getFullYear(), d.getMonth() + 2, 1);
@@ -93,12 +156,23 @@
             view = 'listMonth';
             onViewChange?.(view);
         }
+
+        if (autoRefresh) {
+            startAutoRefresh();
+            lastRefresh = new Date();
+        }
+
         loadEvents();
+    });
+
+    onDestroy(() => {
+        stopAutoRefresh();
     });
 
     function prev() {
         const d = new Date(cursorDate);
         if (view === 'multiMonthYear') d.setFullYear(d.getFullYear() - 1);
+        else if (view === 'weekGrid') d.setDate(d.getDate() - 7);
         else d.setMonth(d.getMonth() - 1);
         cursorDate = d;
         loadEvents();
@@ -106,6 +180,7 @@
     function next() {
         const d = new Date(cursorDate);
         if (view === 'multiMonthYear') d.setFullYear(d.getFullYear() + 1);
+        else if (view === 'weekGrid') d.setDate(d.getDate() + 7);
         else d.setMonth(d.getMonth() + 1);
         cursorDate = d;
         loadEvents();
@@ -113,6 +188,16 @@
     function today() {
         cursorDate = new Date();
         loadEvents();
+    }
+
+    function toggleLargeWeek() {
+        largeWeek = !largeWeek;
+    }
+
+    function handleKeydown(e: KeyboardEvent) {
+        if (largeWeek && e.key === 'Escape') {
+            largeWeek = false;
+        }
     }
 
     function resolveUrls(extendedProps: Record<string, unknown>, className: string) {
@@ -204,74 +289,86 @@
     }
 </script>
 
-<div class="custom-calendar">
-    <div class="cal-toolbar">
-        <div class="cal-nav">
-            <button type="button" class="cal-btn" onclick={prev} aria-label="Forrige">‹</button>
-            <button type="button" class="cal-btn" onclick={next} aria-label="Næste">›</button>
-            <button type="button" class="cal-btn cal-btn-today" onclick={today}>I dag</button>
+<svelte:window onkeydown={handleKeydown} />
+
+<div class="custom-calendar" class:large-mode={largeWeek}>
+    {#if !largeWeek}
+        <div class="cal-toolbar">
+            <div class="cal-nav">
+                <button type="button" class="cal-btn" onclick={prev} aria-label="Forrige">‹</button>
+                <button type="button" class="cal-btn" onclick={next} aria-label="Næste">›</button>
+                <button type="button" class="cal-btn cal-btn-today" onclick={today}>I dag</button>
+
+                <button
+                    type="button"
+                    class="cal-btn cal-refresh-btn"
+                    class:active={autoRefresh}
+                    onclick={toggleAutoRefresh}
+                    title={autoRefresh
+                        ? `Auto-opdatering hver ${REFRESH_MINUTES} min — klik for at slå fra`
+                        : `Slå auto-opdatering til (hver ${REFRESH_MINUTES} min)`}
+                    aria-pressed={autoRefresh}
+                >
+                    <span class="cal-refresh-icon" class:spinning={autoRefresh}>↻</span>
+                    Auto
+                </button>
+            </div>
+
+            <h2 class="cal-title">
+                {#if view === 'multiMonthYear'}
+                    {cursorDate.getFullYear()}
+                {:else if view === 'weekGrid'}
+                    Uge {getWeekNumber(cursorDate)} · {cursorDate.getFullYear()}
+                {:else}
+                    {new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' }).format(cursorDate)}
+                {/if}
+            </h2>
+
+            <div class="cal-views" role="group" aria-label="Skift visning">
+                <button type="button" class="cal-view-btn" class:active={view === 'dayGridMonth'} onclick={() => changeView('dayGridMonth')}>Måned</button>
+                <button type="button" class="cal-view-btn" class:active={view === 'weekGrid'} onclick={() => changeView('weekGrid')}>Uge</button>
+                <button type="button" class="cal-view-btn" class:active={view === 'multiMonthYear'} onclick={() => changeView('multiMonthYear')}>År</button>
+                <button type="button" class="cal-view-btn" class:active={view === 'listMonth'} onclick={() => changeView('listMonth')}>Liste</button>
+            </div>
         </div>
 
-        <h2 class="cal-title">
-            {#if view === 'multiMonthYear'}
-                {cursorDate.getFullYear()}
-            {:else}
-                {new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' }).format(cursorDate)}
-            {/if}
-        </h2>
+        {#if loading}
+            <div class="cal-loading">Indlæser…</div>
+        {/if}
 
-        <div class="cal-views" role="group" aria-label="Skift visning">
-            <button
-                type="button"
-                class="cal-view-btn"
-                class:active={view === 'dayGridMonth'}
-                onclick={() => changeView('dayGridMonth')}
-            >
-                Måned
-            </button>
-            <button
-                type="button"
-                class="cal-view-btn"
-                class:active={view === 'multiMonthYear'}
-                onclick={() => changeView('multiMonthYear')}
-            >
-                År
-            </button>
-            <button
-                type="button"
-                class="cal-view-btn"
-                class:active={view === 'listMonth'}
-                onclick={() => changeView('listMonth')}
-            >
-                Liste
-            </button>
-        </div>
-    </div>
-
-    {#if loading}
-        <div class="cal-loading">Indlæser…</div>
-    {/if}
-
-    {#if view === 'dayGridMonth'}
-        <MonthView
-            {cursorDate}
-            {eventsByDate}
-            onDayClick={handleDayClick}
-            onEventClick={handleEventClick}
-        />
-    {:else if view === 'multiMonthYear'}
-        <YearView
-            year={cursorDate.getFullYear()}
-            {eventsByDate}
-            onDayClick={handleDayClick}
-            onEventClick={handleEventClick}
-        />
+        {#if view === 'dayGridMonth'}
+            <MonthView {cursorDate} {eventsByDate} onDayClick={handleDayClick} onEventClick={handleEventClick} />
+        {:else if view === 'weekGrid'}
+            <div class="week-wrapper">
+                <div class="week-bar">
+                    <button type="button" class="cal-btn cal-btn-large" onclick={toggleLargeWeek}>
+                        ⛶ Vis stor
+                    </button>
+                </div>
+                <WeekView {cursorDate} {eventsByDate} onDayClick={handleDayClick} onEventClick={handleEventClick} />
+            </div>
+        {:else if view === 'multiMonthYear'}
+            <YearView year={cursorDate.getFullYear()} {eventsByDate} onDayClick={handleDayClick} onEventClick={handleEventClick} />
+        {:else}
+            <ListView {cursorDate} {eventsByDate} onEventClick={handleEventClick} />
+        {/if}
     {:else}
-        <ListView
-            {cursorDate}
-            {eventsByDate}
-            onEventClick={handleEventClick}
-        />
+        <div class="large-toolbar">
+            <button type="button" class="cal-btn" onclick={prev} aria-label="Forrige uge">‹ Forrige</button>
+            <h2 class="large-title">Uge {getWeekNumber(cursorDate)} · {cursorDate.getFullYear()}</h2>
+            <div class="large-actions">
+                {#if autoRefresh}
+                    <span class="large-refresh-badge" title="Auto-opdatering aktiv">
+                        <span class="cal-refresh-icon spinning">↻</span>
+                        {REFRESH_MINUTES}m
+                    </span>
+                {/if}
+                <button type="button" class="cal-btn cal-btn-today" onclick={today}>I dag</button>
+                <button type="button" class="cal-btn" onclick={next} aria-label="Næste uge">Næste ›</button>
+                <button type="button" class="cal-btn cal-btn-close" onclick={toggleLargeWeek} aria-label="Luk">✕</button>
+            </div>
+        </div>
+        <WeekView {cursorDate} {eventsByDate} onDayClick={handleDayClick} onEventClick={handleEventClick} large />
     {/if}
 </div>
 
@@ -346,8 +443,10 @@
 
     .cal-nav {
         display: flex;
+        align-items: center;
         gap: 5px;
         flex: 0 0 auto;
+        flex-wrap: wrap;
     }
 
     .cal-title {
@@ -420,6 +519,98 @@
         font-size: 0.9rem;
     }
 
+    /* ---- Auto-refresh ---- */
+    .cal-refresh-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-left: 4px;
+    }
+    .cal-refresh-btn.active {
+        background: var(--color-brand-50, #f0fdf4);
+        border-color: var(--color-brand-500, #22c55e);
+        color: var(--color-brand-700, #15803d);
+    }
+
+    .cal-refresh-icon {
+        display: inline-block;
+        font-size: 1rem;
+        line-height: 1;
+    }
+    .cal-refresh-icon.spinning {
+        animation: cal-spin 3s linear infinite;
+    }
+    @keyframes cal-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* ---------- Stor / fokus-tilstand ---------- */
+    .custom-calendar.large-mode {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #faf9f7;
+        padding: 1rem 1.25rem 1.5rem;
+        overflow: auto;
+    }
+
+    .week-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    .week-bar {
+        display: flex;
+        justify-content: flex-end;
+    }
+    .cal-btn-large {
+        font-size: 0.85rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .large-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    .large-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--cal-text);
+        margin: 0;
+        flex: 1 1 auto;
+        text-align: center;
+    }
+    .large-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .cal-btn-close {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    .large-refresh-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.4rem 0.7rem;
+        background: var(--color-brand-50, #f0fdf4);
+        color: var(--color-brand-700, #15803d);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    /* ---------- Responsiv ---------- */
     @media (max-width: 768px) {
         .cal-toolbar {
             justify-content: center;
@@ -435,6 +626,11 @@
         .cal-views {
             flex: 0 0 auto;
         }
+        .large-title {
+            font-size: 1.3rem;
+            order: -1;
+            flex: 1 1 100%;
+        }
     }
 
     @media (max-width: 480px) {
@@ -447,6 +643,9 @@
             font-size: 0.9rem;
         }
         .cal-btn-today {
+            font-size: 0.78rem;
+        }
+        .cal-refresh-btn {
             font-size: 0.78rem;
         }
     }
