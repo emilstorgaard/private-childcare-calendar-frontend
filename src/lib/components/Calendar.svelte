@@ -1,27 +1,37 @@
 <script lang="ts">
-    import { onMount, onDestroy } from 'svelte';
-    import { Calendar } from '@fullcalendar/core';
-    import daygridPlugin from '@fullcalendar/daygrid';
-    import listPlugin from '@fullcalendar/list';
-    import multiMonthPlugin from '@fullcalendar/multimonth';
-    import interactionPlugin from '@fullcalendar/interaction';
-    import daLocale from '@fullcalendar/core/locales/da';
+    import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
     import { API_BASE_URL } from '$lib/config';
     import { formatDate } from '$lib/utils/dates';
-    import { goto } from '$app/navigation';
     import { Modal, Button } from '$lib/components/ui';
+    import { calendarApi } from '$lib/api/calendar';
+    import {
+        type CalendarEvent,
+        groupEventsByDate,
+        getEventClass,
+        toDateStr
+    } from '$lib/utils/calendar';
+    import MonthView from './calendar/MonthView.svelte';
+    import YearView from './calendar/YearView.svelte';
+    import ListView from './calendar/ListView.svelte';
 
     interface Props {
         onDateClick: (dateStr: string) => void;
+        onViewChange?: (view: string) => void;
     }
 
-    let { onDateClick }: Props = $props();
+    let { onDateClick, onViewChange }: Props = $props();
 
-    let calendarEl: HTMLDivElement;
-    let calendar: Calendar | undefined;
-    let currentView = $state('dayGridMonth');
+    let view = $state<'dayGridMonth' | 'multiMonthYear' | 'listMonth'>('dayGridMonth');
+    let cursorDate = $state(new Date());
+
+    let events = $state<CalendarEvent[]>([]);
+    let loading = $state(false);
+
+    let eventsByDate = $derived(groupEventsByDate(events));
 
     let eventModalOpen = $state(false);
+    let confirmModalOpen = $state(false);
     let deleting = $state(false);
     let selectedEvent = $state<{
         title: string;
@@ -35,36 +45,85 @@
         deleteWarning: string;
     } | null>(null);
 
-    let confirmModalOpen = $state(false);
-
-    function isMobile(): boolean {
-        return window.innerWidth < 700;
+    export function setView(v: string) {
+        view = v as typeof view;
+        onViewChange?.(view);
+        loadEvents();
     }
 
-    function getHeaderToolbar() {
-        return {
-            left: 'prev,next',
-            center: 'title',
-            right: 'today'
-        };
+    function changeView(v: typeof view) {
+        view = v;
+        onViewChange?.(view);
+        loadEvents();
     }
 
-    export function setView(view: string) {
-        calendar?.changeView(view);
-        currentView = view;
+    function getVisibleRange(): { start: string; end: string } {
+        const d = cursorDate;
+        if (view === 'multiMonthYear') {
+            return {
+                start: `${d.getFullYear()}-01-01`,
+                end: `${d.getFullYear() + 1}-01-01`
+            };
+        }
+        const start = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+        const end = new Date(d.getFullYear(), d.getMonth() + 2, 1);
+        return { start: toDateStr(start), end: toDateStr(end) };
     }
 
-    function resolveUrls(
-        extendedProps: Record<string, unknown>,
-        className: string
-    ): { editUrl: string | null; deleteUrl: string | null; deleteWarning: string } {
+    async function loadEvents() {
+        loading = true;
+        try {
+            const { start, end } = getVisibleRange();
+            const raw = await calendarApi.getEvents(start, end);
+            events = (raw ?? []).map((ev: any) => ({
+                ...ev,
+                id: ev.id ?? ev.extendedProps?.id,
+                note: ev.note ?? ev.extendedProps?.note ?? ''
+            }));
+        } catch (e) {
+            console.error(e);
+            events = [];
+        } finally {
+            loading = false;
+        }
+    }
+
+    onMount(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 700) {
+            view = 'listMonth';
+            onViewChange?.(view);
+        }
+        loadEvents();
+    });
+
+    function prev() {
+        const d = new Date(cursorDate);
+        if (view === 'multiMonthYear') d.setFullYear(d.getFullYear() - 1);
+        else d.setMonth(d.getMonth() - 1);
+        cursorDate = d;
+        loadEvents();
+    }
+    function next() {
+        const d = new Date(cursorDate);
+        if (view === 'multiMonthYear') d.setFullYear(d.getFullYear() + 1);
+        else d.setMonth(d.getMonth() + 1);
+        cursorDate = d;
+        loadEvents();
+    }
+    function today() {
+        cursorDate = new Date();
+        loadEvents();
+    }
+
+    function resolveUrls(extendedProps: Record<string, unknown>, className: string) {
         const id = extendedProps?.id as number | undefined;
+        const childWarning = 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!';
 
         const map: Record<string, { edit: string; delete: string | null; warning: string } | null> = {
-            'event-child':            id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
-            'event-start':            id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
-            'event-free':             id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
-            'event-birthday':         id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: 'Er du sikker på at du vil slette dette barn? Dette sletter også alle tilknyttede syge- og fridage!' } : null,
+            'event-child':            id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: childWarning } : null,
+            'event-start':            id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: childWarning } : null,
+            'event-free':             id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: childWarning } : null,
+            'event-birthday':         id ? { edit: `/boern/${id}`, delete: `/api/children/${id}`, warning: childWarning } : null,
             'event-holiday':          null,
             'event-sick':             id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}`,      warning: 'Er du sikker på at du vil slette denne sygedag/fridag?' }      : null,
             'event-dayoff':           id ? { edit: `/sygdom-fridage/${id}`,  delete: `/api/daystatus/${id}`,      warning: 'Er du sikker på at du vil slette denne sygedag/fridag?' }      : null,
@@ -78,28 +137,45 @@
         return {
             editUrl:       entry?.edit    ?? null,
             deleteUrl:     entry?.delete  ?? null,
-            deleteWarning: entry?.warning ?? 'Er du sikker?',
+            deleteWarning: entry?.warning ?? 'Er du sikker?'
         };
     }
 
-    async function confirmDelete() {
-        if (!selectedEvent?.deleteUrl) return;
+    const typeLabels: Record<string, string> = {
+        'event-child': 'Barn',
+        'event-start': 'Opstart',
+        'event-free': 'Fridag',
+        'event-birthday': 'Fødselsdag',
+        'event-holiday': 'Helligdag',
+        'event-sick': 'Sygedag',
+        'event-dayoff': 'Fridag',
+        'event-note': 'Kalenderinfo',
+        'event-waiting': 'Venteliste',
+        'event-closure': 'Lukkedag',
+        'event-closure-vacation': 'Ferie'
+    };
 
-        deleting = true;
-        confirmModalOpen = false;
-        try {
-            const res = await fetch(`${API_BASE_URL}${selectedEvent.deleteUrl}`, {
-                method: 'DELETE'
-            });
-            if (!res.ok) throw new Error('Sletning fejlede.');
-            eventModalOpen = false;
-            calendar?.refetchEvents();
-        } catch {
-            // Vis fejl i event-modalen igen
-            eventModalOpen = true;
-        } finally {
-            deleting = false;
-        }
+    function handleEventClick(ev: CalendarEvent) {
+        const className = getEventClass(ev);
+        const extendedProps = (ev.extendedProps ?? { id: ev.id, note: ev.note }) as Record<string, unknown>;
+        const { editUrl, deleteUrl, deleteWarning } = resolveUrls(extendedProps, className);
+
+        selectedEvent = {
+            title: ev.title,
+            date: ev.start ? formatDate(ev.start) : '',
+            note: (extendedProps.note as string) ?? ev.note ?? '',
+            typeText: typeLabels[className] ?? 'Begivenhed',
+            colorClass: className,
+            isBirthday: className === 'event-birthday',
+            editUrl,
+            deleteUrl,
+            deleteWarning
+        };
+        eventModalOpen = true;
+    }
+
+    function handleDayClick(d: Date) {
+        onDateClick(toDateStr(d));
     }
 
     function handleEdit() {
@@ -107,102 +183,97 @@
         eventModalOpen = false;
         goto(selectedEvent.editUrl);
     }
-
     function handleDeleteClick() {
         eventModalOpen = false;
         confirmModalOpen = true;
     }
-
-    onMount(() => {
-        currentView = isMobile() ? 'listMonth' : 'dayGridMonth';
-
-        calendar = new Calendar(calendarEl, {
-            plugins: [daygridPlugin, listPlugin, multiMonthPlugin, interactionPlugin],
-            initialView: currentView,
-            locale: daLocale,
-            firstDay: 1,
-            weekNumbers: true,
-            weekText: 'Uge',
-            showNonCurrentDates: false,
-            fixedWeekCount: false,
-            height: 'auto',
-            contentHeight: 'auto',
-            expandRows: true,
-            dayMaxEvents: 10,
-            dayMaxEventRows: 10,
-            eventOrder: 'sortOrder,title',
-            eventOrderStrict: true,
-            multiMonthMaxColumns: 1,
-            multiMonthMinWidth: 300,
-            headerToolbar: getHeaderToolbar(),
-            buttonText: {
-                today: 'I dag'
-            },
-            views: {
-                multiMonthYear: {
-                    type: 'multiMonth',
-                    duration: { months: 12 },
-                    buttonText: 'År',
-                    dayMaxEvents: 10,
-                    dayMaxEventRows: 10
-                }
-            },
-            events: `${API_BASE_URL}/api/calendar/events`,
-            dateClick: (info) => {
-                onDateClick(info.dateStr);
-            },
-            eventContent: (arg) => {
-                return { html: '<span class="fc-custom-event-title">' + arg.event.title + '</span>' };
-            },
-            eventClick: (info) => {
-                const className = info.event.classNames[0] ?? '';
-                const extendedProps = info.event.extendedProps as Record<string, unknown>;
-                const { editUrl, deleteUrl, deleteWarning } = resolveUrls(extendedProps, className);
-
-                const typeLabels: Record<string, string> = {
-                    'event-child': 'Barn',
-                    'event-start': 'Opstart',
-                    'event-free': 'Fridag',
-                    'event-birthday': 'Fødselsdag',
-                    'event-holiday': 'Helligdag',
-                    'event-sick': 'Sygedag',
-                    'event-dayoff': 'Fridag',
-                    'event-note': 'Kalenderinfo',
-                    'event-waiting': 'Venteliste',
-                    'event-closure': 'Lukkedag',
-                    'event-closure-vacation': 'Ferie',
-                };
-
-                selectedEvent = {
-                    title:         info.event.title,
-                    date:          info.event.start ? formatDate(info.event.start.toISOString()) : '',
-                    note:          (extendedProps.note as string) ?? '',
-                    typeText:      typeLabels[className] ?? 'Begivenhed',
-                    colorClass:    className,
-                    isBirthday:    className === 'event-birthday',
-                    editUrl,
-                    deleteUrl,
-                    deleteWarning,
-                };
-                eventModalOpen = true;
-            },
-            viewDidMount: (info) => {
-                currentView = info.view.type;
-            },
-            windowResize: () => {
-                calendar?.setOption('headerToolbar', getHeaderToolbar());
-            }
-        });
-
-        calendar.render();
-    });
-
-    onDestroy(() => {
-        calendar?.destroy();
-    });
+    async function confirmDelete() {
+        if (!selectedEvent?.deleteUrl) return;
+        deleting = true;
+        confirmModalOpen = false;
+        try {
+            const res = await fetch(`${API_BASE_URL}${selectedEvent.deleteUrl}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Sletning fejlede.');
+            eventModalOpen = false;
+            await loadEvents();
+        } catch {
+            eventModalOpen = true;
+        } finally {
+            deleting = false;
+        }
+    }
 </script>
 
-<div id="calendar" bind:this={calendarEl}></div>
+<div class="custom-calendar">
+    <div class="cal-toolbar">
+        <div class="cal-nav">
+            <button type="button" class="cal-btn" onclick={prev} aria-label="Forrige">‹</button>
+            <button type="button" class="cal-btn" onclick={next} aria-label="Næste">›</button>
+            <button type="button" class="cal-btn cal-btn-today" onclick={today}>I dag</button>
+        </div>
+
+        <h2 class="cal-title">
+            {#if view === 'multiMonthYear'}
+                {cursorDate.getFullYear()}
+            {:else}
+                {new Intl.DateTimeFormat('da-DK', { month: 'long', year: 'numeric' }).format(cursorDate)}
+            {/if}
+        </h2>
+
+        <div class="cal-views" role="group" aria-label="Skift visning">
+            <button
+                type="button"
+                class="cal-view-btn"
+                class:active={view === 'dayGridMonth'}
+                onclick={() => changeView('dayGridMonth')}
+            >
+                Måned
+            </button>
+            <button
+                type="button"
+                class="cal-view-btn"
+                class:active={view === 'multiMonthYear'}
+                onclick={() => changeView('multiMonthYear')}
+            >
+                År
+            </button>
+            <button
+                type="button"
+                class="cal-view-btn"
+                class:active={view === 'listMonth'}
+                onclick={() => changeView('listMonth')}
+            >
+                Liste
+            </button>
+        </div>
+    </div>
+
+    {#if loading}
+        <div class="cal-loading">Indlæser…</div>
+    {/if}
+
+    {#if view === 'dayGridMonth'}
+        <MonthView
+            {cursorDate}
+            {eventsByDate}
+            onDayClick={handleDayClick}
+            onEventClick={handleEventClick}
+        />
+    {:else if view === 'multiMonthYear'}
+        <YearView
+            year={cursorDate.getFullYear()}
+            {eventsByDate}
+            onDayClick={handleDayClick}
+            onEventClick={handleEventClick}
+        />
+    {:else}
+        <ListView
+            {cursorDate}
+            {eventsByDate}
+            onEventClick={handleEventClick}
+        />
+    {/if}
+</div>
 
 <Modal
     open={eventModalOpen}
@@ -249,121 +320,134 @@
         <Button variant="danger" onclick={confirmDelete} disabled={deleting}>
             {deleting ? 'Sletter…' : '🗑️ Ja, slet'}
         </Button>
-        <Button
-            variant="secondary"
-            onclick={() => { confirmModalOpen = false; eventModalOpen = true; }}
-        >
+        <Button variant="secondary" onclick={() => { confirmModalOpen = false; eventModalOpen = true; }}>
             Annuller
         </Button>
     </div>
 </Modal>
 
 <style>
-    :global(.fc .fc-button-group) {
-        gap: 4px;
+    .custom-calendar {
+        --cal-border: #e0d8cc;
+        --cal-today-bg: #f0fdf4;
+        --cal-accent: var(--color-brand-500);
+        --cal-muted: #9a8f80;
+        --cal-text: #3a342c;
     }
 
-    :global(.fc .fc-button) {
-        margin: 0 2px;
+    .cal-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
     }
 
-    @media (max-width: 700px) {
-        :global(.fc .fc-toolbar-title) {
-            font-size: 1rem;
+    .cal-nav {
+        display: flex;
+        gap: 5px;
+        flex: 0 0 auto;
+    }
+
+    .cal-title {
+        flex: 1 1 auto;
+        text-align: center;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--cal-text);
+        text-transform: capitalize;
+        letter-spacing: -0.01em;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    .cal-views {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 0;
+        background: #f3eee6;
+        border: 1px solid var(--cal-border);
+        border-radius: 9px;
+        padding: 3px;
+    }
+
+    .cal-btn {
+        border: 1px solid var(--cal-border);
+        background: white;
+        border-radius: 8px;
+        padding: 0.4rem 0.7rem;
+        font-size: 1rem;
+        line-height: 1;
+        color: var(--cal-text);
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+    }
+    .cal-btn:hover {
+        background: #f5f0ea;
+        border-color: #d3c8b8;
+    }
+    .cal-btn-today {
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .cal-view-btn {
+        border: none;
+        background: transparent;
+        border-radius: 6px;
+        padding: 0.38rem 0.85rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--cal-muted);
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+        white-space: nowrap;
+    }
+    .cal-view-btn:hover {
+        color: var(--cal-text);
+    }
+    .cal-view-btn.active {
+        background: white;
+        color: var(--cal-accent);
+        box-shadow: 0 1px 2px rgba(60, 50, 40, 0.12);
+    }
+
+    .cal-loading {
+        text-align: center;
+        padding: 0.5rem;
+        color: var(--cal-muted);
+        font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+        .cal-toolbar {
+            justify-content: center;
         }
-
-        :global(.fc .fc-button) {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.8rem;
+        .cal-title {
+            order: -1;
+            flex: 1 1 100%;
+            font-size: 1.1rem;
         }
-
-        :global(.fc .fc-list-event-title) {
-            font-size: 0.85rem;
+        .cal-nav {
+            flex: 0 0 auto;
         }
-
-        :global(.fc .fc-list-day-text),
-        :global(.fc .fc-list-day-side-text) {
-            font-size: 0.85rem;
-        }
-
-        :global(.fc .fc-list-event-time) {
-            display: none;
+        .cal-views {
+            flex: 0 0 auto;
         }
     }
 
-    /* ---- Cursor pointer på alle events ---- */
-    :global(.fc-list),
-    :global(.fc .fc-list-table),
-    :global(.fc .fc-list-event),
-    :global(.fc .fc-list-event td),
-    :global(.fc .fc-list-event-hoverable),
-    :global(.fc .fc-list-event *),
-    :global(.fc .fc-event),
-    :global(.fc .fc-daygrid-event),
-    :global(.fc .fc-daygrid-dot-event),
-    :global(.fc .fc-timegrid-event),
-    :global(.fc .fc-event-main),
-    :global(.fc-custom-event-title) {
-        cursor: pointer !important;
+    @media (max-width: 480px) {
+        .cal-view-btn {
+            padding: 0.35rem 0.6rem;
+            font-size: 0.78rem;
+        }
+        .cal-btn {
+            padding: 0.35rem 0.55rem;
+            font-size: 0.9rem;
+        }
+        .cal-btn-today {
+            font-size: 0.78rem;
+        }
     }
-
-    :global(.fc .fc-list-event-title),
-    :global(.fc .fc-list-event-graphic) {
-        pointer-events: auto !important;
-    }
-
-    /* ---- LIST-view: sæt hover-variabel + override td direkte ---- */
-    :global(.fc) {
-        --fc-list-event-hover-bg-color: transparent !important;
-    }
-
-    :global(.fc .fc-list-event:hover),
-    :global(.fc .fc-list-event:hover td),
-    :global(.fc .fc-list-event-hoverable:hover),
-    :global(.fc .fc-list-event-hoverable:hover td),
-    :global(.fc .fc-list-table tr:hover),
-    :global(.fc .fc-list-table tr:hover td),
-    :global(.fc-theme-standard .fc-list-event:hover td) {
-        background-color: transparent !important;
-        background: none !important;
-    }
-
-    /* ---- DAYGRID / TIMEGRID / MULTIMONTH ---- */
-    /* Brug currentColor/transparent IKKE inherit (inherit = hvid fra dagcelle) */
-    :global(.fc .fc-daygrid-event:hover),
-    :global(.fc .fc-daygrid-dot-event:hover),
-    :global(.fc .fc-h-event:hover),
-    :global(.fc .fc-v-event:hover),
-    :global(.fc .fc-timegrid-event:hover) {
-        filter: none !important;
-        opacity: 1 !important;
-        box-shadow: none !important;
-    }
-
-    /* Dot-events skal forblive uden baggrund */
-    :global(.fc .fc-daygrid-dot-event:hover) {
-        background: none !important;
-        background-color: transparent !important;
-    }
-
-    :global(.fc) {
-    --fc-list-event-hover-bg-color: transparent !important;
-}
-
-:global(.fc .fc-list-event:hover),
-:global(.fc .fc-list-event:hover td),
-:global(.fc .fc-list-event:hover > td),
-:global(.fc .fc-list-event-hoverable:hover),
-:global(.fc .fc-list-event-hoverable:hover td),
-:global(.fc .fc-list-table tbody tr:hover),
-:global(.fc .fc-list-table tbody tr:hover td),
-:global(.fc-theme-standard .fc-list-event:hover td),
-:global(.fc-theme-standard .fc-list-event:hover),
-:global(.fc .fc-list-day-cushion:hover),
-:global(.fc table.fc-list-table tr.fc-list-event:hover td) {
-    background-color: transparent !important;
-    background: none !important;
-    background-image: none !important;
-}
-
 </style>

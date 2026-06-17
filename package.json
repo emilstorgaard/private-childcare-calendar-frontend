@@ -33,12 +33,5 @@
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.60.1",
 		"vite": "^8.0.16"
-	},
-	"dependencies": {
-		"@fullcalendar/core": "^6.1.20",
-		"@fullcalendar/daygrid": "^6.1.20",
-		"@fullcalendar/interaction": "^6.1.20",
-		"@fullcalendar/list": "^6.1.20",
-		"@fullcalendar/multimonth": "^6.1.20"
 	}
 }

@@ -26,9 +26,8 @@
         modalOpen = true;
     }
 
-    function switchView(view: string) {
+    function handleViewChange(view: string) {
         activeView = view;
-        calendarComponent.setView(view);
     }
 
     function exportExcel() {
@@ -62,30 +61,11 @@
 </Card>
 
 <Card class="mb-5">
-    <div class="flex justify-center gap-2 mb-4">
-        <Button
-            variant={activeView === 'dayGridMonth' ? 'primary' : 'secondary'}
-            size="sm"
-            onclick={() => switchView('dayGridMonth')}
-        >
-            Måned
-        </Button>
-        <Button
-            variant={activeView === 'multiMonthYear' ? 'primary' : 'secondary'}
-            size="sm"
-            onclick={() => switchView('multiMonthYear')}
-        >
-            År
-        </Button>
-        <Button
-            variant={activeView === 'listMonth' ? 'primary' : 'secondary'}
-            size="sm"
-            onclick={() => switchView('listMonth')}
-        >
-            Liste
-        </Button>
-    </div>
-    <Calendar bind:this={calendarComponent} onDateClick={handleDateClick} />
+    <Calendar
+        bind:this={calendarComponent}
+        onDateClick={handleDateClick}
+        onViewChange={handleViewChange}
+    />
 </Card>
 
 {#if activeView === 'listMonth'}
