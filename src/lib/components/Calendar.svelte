@@ -34,7 +34,6 @@
 
     let eventsByDate = $derived(groupEventsByDate(events));
 
-    // ---- Auto-refresh ----
     const REFRESH_MINUTES = 5;
 
     function getStoredAutoRefresh(): boolean {
@@ -46,7 +45,6 @@
                 return cfg.enabled === true;
             }
         } catch {
-            // ignorér korrupt værdi
         }
         return false;
     }
@@ -80,7 +78,6 @@
         }
     }
 
-    // Gem indstilling i localStorage ved ændring
     $effect(() => {
         if (typeof window === 'undefined') return;
         localStorage.setItem('cal-auto-refresh', JSON.stringify({ enabled: autoRefresh }));
@@ -163,7 +160,6 @@
             onViewChange?.(view);
         }
 
-        // Start timeren hvis auto-refresh var slået til (gendannet fra localStorage)
         if (autoRefresh) {
             startAutoRefresh();
             lastRefresh = new Date();
@@ -308,7 +304,6 @@
                 <button type="button" class="cal-btn" onclick={next} aria-label="Næste">›</button>
                 <button type="button" class="cal-btn cal-btn-today" onclick={today}>I dag</button>
 
-                <!-- Auto-refresh toggle -->
                 <button
                     type="button"
                     class="cal-btn cal-refresh-btn"
@@ -363,7 +358,6 @@
             <ListView {cursorDate} {eventsByDate} onEventClick={handleEventClick} />
         {/if}
     {:else}
-        <!-- STOR / FOKUS-tilstand -->
         <div class="large-toolbar">
             <button type="button" class="cal-btn" onclick={prev} aria-label="Forrige uge">‹ Forrige</button>
             <h2 class="large-title">Uge {getWeekNumber(cursorDate)} · {cursorDate.getFullYear()}</h2>
