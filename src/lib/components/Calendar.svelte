@@ -468,6 +468,16 @@
 						{REFRESH_MINUTES}m
 					</span>
 				{/if}
+				<button
+					type="button"
+					class="cal-btn cal-btn-weekend"
+					class:active={!showWeekends}
+					onclick={() => (showWeekends = !showWeekends)}
+					title={showWeekends ? 'Skjul lørdag og søndag' : 'Vis lørdag og søndag'}
+					aria-pressed={!showWeekends}
+				>
+					{showWeekends ? '📅 Skjul weekend' : '📅 Vis weekend'}
+				</button>
 				<button type="button" class="cal-btn cal-btn-today" onclick={today}>I dag</button>
 				<button type="button" class="cal-btn" onclick={next} aria-label="Næste uge">Næste ›</button>
 				<button
@@ -484,6 +494,7 @@
 			onDayClick={handleDayClick}
 			onEventClick={handleEventClick}
 			large
+			{showWeekends}
 		/>
 	{/if}
 </div>
