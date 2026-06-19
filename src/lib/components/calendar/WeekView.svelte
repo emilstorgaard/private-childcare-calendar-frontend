@@ -52,7 +52,7 @@
 <div
 	class="week-grid"
 	class:large
-	style="grid-template-columns: repeat({weekDays.length}, minmax(0, 1fr));"
+	style="--day-count: {weekDays.length};"
 >
 	{#each weekDays as day}
 		{@const dayEvents = eventsFor(day)}
@@ -114,7 +114,9 @@
 		--hover-bg: #fcfaf6;
 
 		display: grid;
-		grid-template-columns: repeat(7, minmax(0, 1fr));
+		/* Driven by a CSS var (not an inline grid-template-columns) so media
+		   queries below can still override the column count on small screens. */
+		grid-template-columns: repeat(var(--day-count, 7), minmax(0, 1fr));
 		background: white;
 		border: 1px solid var(--grid-line-strong);
 		border-radius: 14px;
@@ -129,6 +131,7 @@
 		flex-direction: column;
 		border-right: 1px solid var(--grid-line);
 		transition: background 0.15s ease;
+		min-width: 0; /* allow flex/grid children to shrink instead of overflowing */
 	}
 	.week-day:last-child {
 		border-right: none;
@@ -172,6 +175,7 @@
 		font-weight: 600;
 		color: var(--text-strong);
 		text-transform: capitalize;
+		white-space: nowrap;
 	}
 	.today-date {
 		display: inline-flex;
@@ -190,6 +194,7 @@
 		gap: 4px;
 		padding: 0.4rem 0.35rem;
 		flex: 1 1 auto;
+		min-width: 0;
 	}
 	.week-day-empty {
 		text-align: center;
@@ -275,10 +280,35 @@
 		font-size: 1rem;
 	}
 
-	@media (max-width: 900px) {
+	/* ---------- Tablet / narrow desktop: tighten up, keep grid layout ---------- */
+	@media (max-width: 900px) and (min-width: 601px) {
+		.week-day-header {
+			padding: 0.5rem 0.25rem;
+		}
+		.week-day-name {
+			font-size: 0.65rem;
+		}
+		.week-day-date {
+			font-size: 0.78rem;
+		}
+		.week-event {
+			font-size: 0.7rem;
+			padding: 3px 6px;
+		}
+		.large .week-day-date {
+			font-size: 1.1rem;
+		}
+		.large .week-event {
+			font-size: 0.95rem;
+		}
+	}
+
+	/* ---------- Mobile: stack days vertically, header becomes a row ---------- */
+	@media (max-width: 600px) {
 		.week-grid {
 			grid-template-columns: 1fr;
 			min-height: 0;
+			border-radius: 10px;
 		}
 		.week-day {
 			border-right: none;
@@ -289,11 +319,71 @@
 		}
 		.week-day-header {
 			flex-direction: row;
-			justify-content: space-between;
-			padding: 0.55rem 0.85rem;
+			align-items: baseline;
+			justify-content: flex-start;
+			gap: 0.5rem;
+			padding: 0.6rem 0.85rem;
+			position: sticky;
+			top: 0;
+			z-index: 1;
+		}
+		.week-day-name {
+			font-size: 0.72rem;
+		}
+		.week-day-date {
+			font-size: 0.95rem;
+		}
+		.today-date {
+			padding: 0.1rem 0.55rem;
+		}
+		.week-day-events {
+			padding: 0.5rem 0.85rem 0.75rem;
+			gap: 6px;
+		}
+		.week-event {
+			font-size: 0.85rem;
+			padding: 8px 10px;
+			min-height: 38px; /* comfortable touch target */
+			display: flex;
+			align-items: center;
+		}
+		.week-day-empty {
+			text-align: left;
+			padding-top: 0;
+			font-size: 0.85rem;
 		}
 		.week-grid.large {
 			min-height: 0;
+		}
+		.large .week-day-header {
+			padding: 0.75rem 0.85rem;
+		}
+		.large .week-day-date {
+			font-size: 1.1rem;
+		}
+		.large .week-event {
+			font-size: 0.95rem;
+			padding: 10px 12px;
+		}
+	}
+
+	/* ---------- Very small phones ---------- */
+	@media (max-width: 380px) {
+		.week-day-header {
+			padding: 0.5rem 0.65rem;
+		}
+		.week-day-events {
+			padding: 0.45rem 0.65rem 0.65rem;
+		}
+		.week-day-name {
+			font-size: 0.65rem;
+		}
+		.week-day-date {
+			font-size: 0.88rem;
+		}
+		.week-event {
+			font-size: 0.8rem;
+			padding: 7px 9px;
 		}
 	}
 </style>
